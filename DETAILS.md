@@ -4,7 +4,7 @@ A CUDA C++ project that studies how to make matrix multiplication faster by usin
 
 ## 1. Project overview
 
-Matrix multiplication is widely used in artificial intelligence, machine learning, scientific computing, and image processing. For matrices `A` (`M × K`) and `B` (`K × N`), the result `C` (`M × N`) is calculated as:
+Matrix multiplication is widely used in AI , machine learning, scientific computing, and image processing. For matrices `A` (`M × K`) and `B` (`K × N`), the result `C` (`M × N`) is calculated as:
 
 `C[i][j] = sum(A[i][k] * B[k][j])` for `k = 0 ... K-1`.
 
