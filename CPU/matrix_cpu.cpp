@@ -14,6 +14,7 @@ int main(int argc, char* argv[])
 {
     size_t N = 256;
     const int RUNS = 5;
+    
 
     // Read matrix size
     if (argc > 1) {
