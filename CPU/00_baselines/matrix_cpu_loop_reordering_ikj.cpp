@@ -9,10 +9,9 @@
 
 using namespace std;
 
-
 int main(int argc, char* argv[])
 {
-   size_t N = 256;
+    size_t N = 256;
     const int RUNS = 5;
 
     // Read matrix size
@@ -28,6 +27,7 @@ int main(int argc, char* argv[])
         N = static_cast<size_t>(value);
     }
 
+    // Check matrix size overflow
     if (N > numeric_limits<size_t>::max() / N) {
         cerr << "Matrix size is too large!" << endl;
         return 1;
@@ -35,8 +35,7 @@ int main(int argc, char* argv[])
 
     size_t total = N * N;
 
-    try{
-
+    try {
         vector<double> A(total);
         vector<double> B(total);
         vector<double> C(total, 0.0);
@@ -150,13 +149,12 @@ int main(int argc, char* argv[])
              << (correct ? "PASSED" : "FAILED") << endl;
 
         return correct ? 0 : 1;
-    }catch (const bad_alloc&) {
+    }
+    catch (const bad_alloc&) {
         cerr << "Memory allocation failed. Try a smaller matrix size."
              << endl;
         return 1;
     }
-
-
 }
 
 
