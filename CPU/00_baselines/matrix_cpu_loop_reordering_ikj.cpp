@@ -130,6 +130,26 @@ int main(int argc, char* argv[])
                 }
             }
         }
+
+        // Display results
+        cout << fixed << setprecision(6);
+
+        cout << "\n===== OPTIMIZED CPU MATRIX MULTIPLICATION =====\n";
+        cout << "Matrix size       : " << N << " x " << N << endl;
+        cout << "Loop order        : i-k-j" << endl;
+        cout << "Warm-up runs      : 1" << endl;
+        cout << "Measured runs     : " << RUNS << endl;
+        cout << "Average time      : " << average << " seconds\n";
+        cout << "Median time       : " << median << " seconds\n";
+        cout << "Performance       : " << gflops << " GFLOP/s\n";
+        cout << "C[0][0]           : " << C[0] << endl;
+        cout << "C[N-1][N-1]       : " << C[total - 1] << endl;
+        cout << "Maximum error     : " << max_error << endl;
+
+        cout << "Correctness       : "
+             << (correct ? "PASSED" : "FAILED") << endl;
+
+        return correct ? 0 : 1;
     }catch (const bad_alloc&) {
         cerr << "Memory allocation failed. Try a smaller matrix size."
              << endl;
