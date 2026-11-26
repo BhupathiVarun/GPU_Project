@@ -8,7 +8,6 @@
 
 using namespace std;
 
-
 #define BLOCK_X 32   // one warp wide: lanes map to consecutive columns
 #define BLOCK_Y 8    // same 32 x 8 block as the best coalesced variant (t3)
 
@@ -25,6 +24,8 @@ do {                                                          \
         exit(EXIT_FAILURE);                                   \
     }                                                         \
 } while (0)
+
+typedef void (*KernelFn)(const double *, const double *, double *, int);
 
 template <int RM, int RN>
 __global__ void __launch_bounds__(BLOCK_X * BLOCK_Y)
@@ -108,6 +109,7 @@ matmulRegBlocked(
     }
 }
 
+// CPU reference implementation
 void cpuMatrixMultiply(
     const vector<double>& A,
     const vector<double>& B,
@@ -127,7 +129,6 @@ void cpuMatrixMultiply(
         }
     }
 }
-
 
 struct Variant
 {
@@ -152,7 +153,6 @@ struct Result
     size_t localBytes;     // > 0 means registers spilled to local memory
     int blocksPerSM;
 };
-
 
 static dim3 gridFor(int N, int rm, int rn)
 {
@@ -295,7 +295,6 @@ static void printVariant(const Variant &v, int N, double h2d_ms, const Result &r
     cout << "Correctness             : "
          << (r.correct ? "PASSED" : "FAILED") << endl;
 }
-
 
 int main(int argc, char *argv[])
 {
