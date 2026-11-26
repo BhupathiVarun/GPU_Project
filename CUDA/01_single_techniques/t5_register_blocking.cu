@@ -25,3 +25,85 @@ do {                                                          \
         exit(EXIT_FAILURE);                                   \
     }                                                         \
 } while (0)
+
+template <int RM, int RN>
+__global__ void __launch_bounds__(BLOCK_X * BLOCK_Y)
+matmulRegBlocked(
+    const double *A,
+    const double *B,
+    double *C,
+    int N)
+{
+    const int rowBase = blockIdx.y * (BLOCK_Y * RM) + threadIdx.y;
+    const int colBase = blockIdx.x * (BLOCK_X * RN) + threadIdx.x;
+
+    // Row offsets of A and column indices of B, clamped so loads stay in range.
+    int rowOff[RM];
+    int colIdx[RN];
+
+    #pragma unroll
+    for (int i = 0; i < RM; i++)
+    {
+        int r = rowBase + i * BLOCK_Y;
+        rowOff[i] = (r < N ? r : N - 1) * N;
+    }
+
+    #pragma unroll
+    for (int j = 0; j < RN; j++)
+    {
+        int c = colBase + j * BLOCK_X;
+        colIdx[j] = (c < N ? c : N - 1);
+    }
+
+    // RM * RN accumulators live in registers for the whole k loop.
+    double acc[RM][RN];
+
+    #pragma unroll
+    for (int i = 0; i < RM; i++)
+        #pragma unroll
+        for (int j = 0; j < RN; j++)
+            acc[i][j] = 0.0;
+
+    for (int k = 0; k < N; k++)
+    {
+        double a[RM];
+        double b[RN];
+
+        // RM + RN global loads ...
+        #pragma unroll
+        for (int i = 0; i < RM; i++)
+            a[i] = A[rowOff[i] + k];
+
+        const int kN = k * N;
+
+        #pragma unroll
+        for (int j = 0; j < RN; j++)
+            b[j] = B[kN + colIdx[j]];
+
+        // ... feed RM * RN multiply-adds.
+        #pragma unroll
+        for (int i = 0; i < RM; i++)
+            #pragma unroll
+            for (int j = 0; j < RN; j++)
+                acc[i][j] += a[i] * b[j];
+    }
+
+    // Write the RM x RN results. For each j the lanes write consecutive columns.
+    #pragma unroll
+    for (int i = 0; i < RM; i++)
+    {
+        int r = rowBase + i * BLOCK_Y;
+
+        if (r < N)
+        {
+            #pragma unroll
+            for (int j = 0; j < RN; j++)
+            {
+                int c = colBase + j * BLOCK_X;
+
+                if (c < N)
+                    C[r * N + c] = acc[i][j];
+            }
+        }
+    }
+}
