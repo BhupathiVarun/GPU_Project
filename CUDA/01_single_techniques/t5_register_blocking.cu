@@ -295,3 +295,137 @@ static void printVariant(const Variant &v, int N, double h2d_ms, const Result &r
     cout << "Correctness             : "
          << (r.correct ? "PASSED" : "FAILED") << endl;
 }
+
+
+int main(int argc, char *argv[])
+{
+    int N = 256;
+
+    if (argc > 1)
+        N = atoi(argv[1]);
+
+    if (N <= 0)
+    {
+        cerr << "Matrix size must be positive." << endl;
+        return 1;
+    }
+
+    cudaDeviceProp prop;
+    CUDA_CHECK(cudaGetDeviceProperties(&prop, 0));
+    cout << "GPU : " << prop.name << " (" << prop.multiProcessorCount
+         << " SMs, CC " << prop.major << "." << prop.minor << ")" << endl;
+
+    size_t elements = static_cast<size_t>(N) * N;
+    size_t bytes = elements * sizeof(double);
+
+    vector<double> h_A(elements);
+    vector<double> h_B(elements);
+    vector<double> h_C(elements);
+    vector<double> h_reference(elements);
+
+    // Same deterministic inputs as the CPU and other CUDA programs
+    for (size_t i = 0; i < elements; i++)
+    {
+        h_A[i] =
+            (static_cast<int>((i * 17 + 3) % 101) - 50) / 100.0;
+
+        h_B[i] =
+            (static_cast<int>((i * 13 + 7) % 101) - 50) / 100.0;
+    }
+
+    // CPU reference (computed once, shared by all variants)
+    cpuMatrixMultiply(h_A, h_B, h_reference, N);
+
+    double *d_A = nullptr;
+    double *d_B = nullptr;
+    double *d_C = nullptr;
+
+    CUDA_CHECK(cudaMalloc(&d_A, bytes));
+    CUDA_CHECK(cudaMalloc(&d_B, bytes));
+    CUDA_CHECK(cudaMalloc(&d_C, bytes));
+
+    cudaEvent_t start, stop;
+
+    CUDA_CHECK(cudaEventCreate(&start));
+    CUDA_CHECK(cudaEventCreate(&stop));
+
+    // Measure host-to-device transfer time (shared by all variants)
+    CUDA_CHECK(cudaEventRecord(start));
+    CUDA_CHECK(cudaMemcpy(d_A, h_A.data(), bytes, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_B, h_B.data(), bytes, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaEventRecord(stop));
+    CUDA_CHECK(cudaEventSynchronize(stop));
+
+    float h2d = 0.0f;
+    CUDA_CHECK(cudaEventElapsedTime(&h2d, start, stop));
+    double h2d_ms = h2d;
+
+    dim3 block(BLOCK_X, BLOCK_Y);
+
+    const int numVariants = 4;
+
+    Variant variants[numVariants] = {
+        { "t5_regblock_1x1", "1 x 1 (reference, no register blocking)",
+          1, 1, matmulRegBlocked<1, 1>, block, gridFor(N, 1, 1) },
+
+        { "t5_regblock_2x2", "2 x 2 (4 outputs per thread)",
+          2, 2, matmulRegBlocked<2, 2>, block, gridFor(N, 2, 2) },
+
+        { "t5_regblock_4x4", "4 x 4 (16 outputs per thread)",
+          4, 4, matmulRegBlocked<4, 4>, block, gridFor(N, 4, 4) },
+
+        { "t5_regblock_8x8", "8 x 8 (64 outputs per thread, register heavy)",
+          8, 8, matmulRegBlocked<8, 8>, block, gridFor(N, 8, 8) }
+    };
+
+    Result results[numVariants];
+    bool allCorrect = true;
+
+    for (int i = 0; i < numVariants; i++)
+    {
+        results[i] = runVariant(variants[i], d_A, d_B, d_C, h_C,
+                                h_reference, N, bytes, start, stop);
+
+        printVariant(variants[i], N, h2d_ms, results[i]);
+
+        if (!results[i].correct)
+            allCorrect = false;
+    }
+
+    // Summary: the effect of register blocking is the ratio to the 1 x 1 run
+    printf("\n======= REGISTER BLOCKING SUMMARY (N = %d) =======\n", N);
+    printf("%-46s %12s %10s %9s %6s %7s\n",
+           "Variant", "Median (ms)", "GFLOP/s", "vs 1x1", "Regs", "Spill");
+
+    for (int i = 0; i < numVariants; i++)
+    {
+        printf("%-46s %12.6f %10.3f %8.2fx %6d %6zuB\n",
+               variants[i].name,
+               results[i].median_ms,
+               results[i].gflops,
+               results[0].median_ms / results[i].median_ms,
+               results[i].regsPerThread,
+               results[i].localBytes);
+    }
+
+    // One machine-readable line per variant
+    // RESULT,variant,N,median_ms,average_ms,gflops,max_abs_error
+    printf("\n");
+    for (int i = 0; i < numVariants; i++)
+    {
+        printf("RESULT,%s,%d,%.6f,%.6f,%.3f,%.3e\n",
+               variants[i].tag, N,
+               results[i].median_ms, results[i].average_ms,
+               results[i].gflops, results[i].maxError);
+    }
+
+    // Cleanup
+    CUDA_CHECK(cudaEventDestroy(start));
+    CUDA_CHECK(cudaEventDestroy(stop));
+
+    CUDA_CHECK(cudaFree(d_A));
+    CUDA_CHECK(cudaFree(d_B));
+    CUDA_CHECK(cudaFree(d_C));
+
+    return allCorrect ? 0 : 1;
+}
