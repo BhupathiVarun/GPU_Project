@@ -1,0 +1,64 @@
+===== BASIC CUDA MATRIX MULTIPLICATION =====
+GPU matrix size : 256 x 256
+Threads per block: 256
+Blocks in grid  : 16 x 16
+C[0][0]         : 512
+Correctness     : PASSED
+
+========== BASIC CUDA MATRIX MULTIPLICATION ==========
+GPU matrix size          : 256 x 256
+Threads per block        : 256
+Blocks in grid           : 16 x 16
+
+--- Timing Results ---
+H2D transfer time        : 0.3624 ms
+D2H transfer time        : 0.188064 ms
+Kernel median time       : 0.297312 ms
+Kernel average time      : 0.297696 ms
+
+--- Performance ---
+GPU performance          : 112.859 GFLOP/s
+
+--- Correctness ---
+C[0]                     : -0.8743
+Maximum absolute error   : 1.55431e-15
+Correctness              : PASSED
+
+========== BASIC CUDA MATRIX MULTIPLICATION ==========
+GPU matrix size          : 512 x 512
+Threads per block        : 256
+Blocks in grid           : 32 x 32
+
+--- Timing Results ---
+H2D transfer time        : 1.23171 ms
+D2H transfer time        : 0.62432 ms
+Kernel median time       : 3.03085 ms
+Kernel average time      : 3.03015 ms
+
+--- Performance ---
+GPU performance          : 88.5678 GFLOP/s
+
+--- Correctness ---
+C[0]                     : -0.8622
+Maximum absolute error   : 3.55271e-15
+Correctness              : PASSED
+
+========== BASIC CUDA MATRIX MULTIPLICATION ==========
+GPU matrix size          : 1024 x 1024
+Threads per block        : 256
+Blocks in grid           : 64 x 64
+
+--- Timing Results ---
+H2D transfer time        : 3.99443 ms
+D2H transfer time        : 2.3231 ms
+Kernel median time       : 13.8971 ms
+Kernel average time      : 13.926 ms
+
+--- Performance ---
+GPU performance          : 154.527 GFLOP/s
+
+--- Correctness ---
+C[0]                     : -0.6119
+Maximum absolute error   : 7.10543e-15
+Correctness              : PASSED
+
