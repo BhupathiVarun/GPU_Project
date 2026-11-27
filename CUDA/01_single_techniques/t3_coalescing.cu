@@ -105,7 +105,6 @@ double maxAbsError(const vector<double>& actual,
     return result;
 }
 
-
 int main(int argc, char *argv[])
 {
     int N = 512;
@@ -214,4 +213,3 @@ int main(int argc, char *argv[])
 
     return (coalesced_ok && strided_ok) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
