@@ -4,7 +4,6 @@
 
 using namespace std;
 
-
 // CUDA kernel: each thread calculates one element of C
 __global__ void matrixMultiply(
     double *A,
@@ -89,3 +88,31 @@ int main()
             break;
         }
     }
+
+    cout << "\n===== BASIC CUDA MATRIX MULTIPLICATION =====\n";
+
+    cout << "GPU matrix size : " << N << " x " << N << endl;
+    cout << "Threads per block: "
+         << threadsPerBlock.x * threadsPerBlock.y << endl;
+
+    cout << "Blocks in grid  : "
+         << blocksPerGrid.x << " x "
+         << blocksPerGrid.y << endl;
+
+    cout << "C[0][0]         : " << h_C[0] << endl;
+
+    cout << "Correctness     : "
+         << (correct ? "PASSED" : "FAILED") << endl;
+
+    // Free GPU memory
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
+
+    // Free CPU memory
+    delete[] h_A;
+    delete[] h_B;
+    delete[] h_C;
+
+    return correct ? 0 : 1;
+}
