@@ -70,7 +70,6 @@ __global__ void matrixMultiplyTiled(
         C[row * N + col] = sum;
 }
 
-
 // CPU reference implementation
 void cpuMatrixMultiply(
     const vector<double>& A,
@@ -91,7 +90,6 @@ void cpuMatrixMultiply(
         }
     }
 }
-
 
 int main(int argc, char *argv[])
 {
