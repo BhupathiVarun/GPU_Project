@@ -1,0 +1,128 @@
+PROJECT: Engineering Optimization for Matrix Multiplication on GPU
+
+CPU BASELINE IMPLEMENTATION
+Compiler: g++ with -O2
+Data type: double
+
+Matrix size: 256 x 256
+Execution time: 0.024130 seconds
+Performance: 1.390548 GFLOP/s
+Correctness: PASSED
+
+Matrix size: 512 x 512
+Execution time: 0.374487 seconds
+Performance: 0.716808 GFLOP/s
+Correctness: PASSED
+
+
+
+CPU PERFORMANCE COMPARISON
+
+Implementation 1: Original i-j-k
+Implementation 2: Optimized i-k-j
+
+Matrix Size: 256 x 256
+Original Time: 0.024590 seconds
+Optimized Time: 0.008675 seconds
+Speedup: 2.83x
+Correctness: PASSED
+
+Matrix Size: 512 x 512
+Original Time: 0.374656 seconds
+Optimized Time: 0.068041 seconds
+Speedup: 5.51x
+Correctness: PASSED
+
+Matrix Size: 1024 x 1024
+Original Time: 3.428055 seconds
+Optimized Time: 0.536483 seconds
+Speedup: 6.39x
+Correctness: PASSED
+
+
+
+
+===== CPU BASELINE MATRIX MULTIPLICATION =====
+Matrix size       : 256 x 256
+Loop order        : i-j-k
+Warm-up runs      : 1
+Measured runs     : 5
+Average time      : 0.023720 seconds
+Median time       : 0.023659 seconds
+Performance       : 1.418227 GFLOP/s
+C[0][0]           : -0.874300
+C[N-1][N-1]       : -0.343400
+Maximum error     : 0.000000
+Correctness       : PASSED
+[s112201011-unnikrishnan@master 01_cpu]$ ./matrix_cpu_ikj 512
+
+===== CPU BASELINE MATRIX MULTIPLICATION =====
+Matrix size       : 512 x 512
+Loop order        : i-j-k
+Warm-up runs      : 1
+Measured runs     : 5
+Average time      : 0.386252 seconds
+Median time       : 0.386307 seconds
+Performance       : 0.694876 GFLOP/s
+C[0][0]           : -0.862200
+C[N-1][N-1]       : 1.986500
+Maximum error     : 0.000000
+Correctness       : PASSED
+[s112201011-unnikrishnan@master 01_cpu]$ ./matrix_cpu_ikj 1024
+
+===== CPU BASELINE MATRIX MULTIPLICATION =====
+Matrix size       : 1024 x 1024
+Loop order        : i-j-k
+Warm-up runs      : 1
+Measured runs     : 5
+Average time      : 3.111966 seconds
+Median time       : 3.111701 seconds
+Performance       : 0.690132 GFLOP/s
+C[0][0]           : -0.611900
+C[N-1][N-1]       : 3.307400
+Maximum error     : 0.000000
+Correctness       : PASSED
+
+
+
+
+===== OPTIMIZED CPU MATRIX MULTIPLICATION =====
+Matrix size       : 256 x 256
+Loop order        : i-k-j
+Warm-up runs      : 1
+Measured runs     : 5
+Average time      : 0.009816 seconds
+Median time       : 0.009752 seconds
+Performance       : 3.440849 GFLOP/s
+C[0][0]           : -0.874300
+C[N-1][N-1]       : -0.343400
+Maximum error     : 0.000000
+Correctness       : PASSED
+[s112201011-unnikrishnan@master 01_cpu]$ ./matrix_cpu_ikj 512
+
+===== OPTIMIZED CPU MATRIX MULTIPLICATION =====
+Matrix size       : 512 x 512
+Loop order        : i-k-j
+Warm-up runs      : 1
+Measured runs     : 5
+Average time      : 0.076536 seconds
+Median time       : 0.076567 seconds
+Performance       : 3.505882 GFLOP/s
+C[0][0]           : -0.862200
+C[N-1][N-1]       : 1.986500
+Maximum error     : 0.000000
+Correctness       : PASSED
+[s112201011-unnikrishnan@master 01_cpu]$ ./matrix_cpu_ikj 1024
+
+===== OPTIMIZED CPU MATRIX MULTIPLICATION =====
+Matrix size       : 1024 x 1024
+Loop order        : i-k-j
+Warm-up runs      : 1
+Measured runs     : 5
+Average time      : 0.609407 seconds
+Median time       : 0.609050 seconds
+Performance       : 3.525959 GFLOP/s
+C[0][0]           : -0.611900
+C[N-1][N-1]       : 3.307400
+Maximum error     : 0.000000
+Correctness       : PASSED
