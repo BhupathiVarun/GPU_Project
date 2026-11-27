@@ -303,3 +303,135 @@ matmulFinalWMMA(const __half *__restrict__ A,
         }
     }
 }
+
+
+struct Timing {
+    double medianMs = 0.0;
+    double averageMs = 0.0;
+    double gflops = 0.0;
+};
+
+struct ErrorStats {
+    double maxAbs = 0.0;
+    double rmse = 0.0;
+};
+
+template <typename Launch>
+static Timing benchmark(const string &name,
+                        Launch launch,
+                        double operations,
+                        cudaEvent_t start,
+                        cudaEvent_t stop)
+{
+    // Warm-up runs are not included in timing samples.
+    for (int i = 0; i < WARMUP_RUNS; ++i) {
+        launch();
+        CUDA_CHECK(cudaGetLastError());
+    }
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    vector<float> samples;
+    samples.reserve(TIMED_RUNS);
+
+    for (int i = 0; i < TIMED_RUNS; ++i) {
+        CUDA_CHECK(cudaEventRecord(start));
+        launch();
+        CUDA_CHECK(cudaGetLastError());
+        CUDA_CHECK(cudaEventRecord(stop));
+        CUDA_CHECK(cudaEventSynchronize(stop));
+
+        float ms = 0.0f;
+        CUDA_CHECK(cudaEventElapsedTime(&ms, start, stop));
+        samples.push_back(ms);
+    }
+
+    sort(samples.begin(), samples.end());
+    if (samples.size() % 2 == 0) {
+        const size_t hi = samples.size() / 2;
+        const size_t lo = hi - 1;
+        Timing t;
+        t.medianMs = 0.5 * (samples[lo] + samples[hi]);
+        for (float x : samples) t.averageMs += x;
+        t.averageMs /= samples.size();
+        t.gflops = (t.medianMs > 0.0)
+                 ? operations / (t.medianMs * 1.0e6) : 0.0;
+        return t;
+    }
+
+    Timing t;
+    t.medianMs = samples[samples.size() / 2];
+    for (float x : samples) t.averageMs += x;
+    t.averageMs /= samples.size();
+    t.gflops = (t.medianMs > 0.0)
+             ? operations / (t.medianMs * 1.0e6) : 0.0;
+    (void)name;
+    return t;
+}
+
+static void cpuMatrixMultiply(const vector<double> &A,
+                              const vector<double> &B,
+                              vector<double> &C,
+                              int N)
+{
+    fill(C.begin(), C.end(), 0.0);
+    // i-k-j order improves CPU cache locality. For each output element, k is
+    // still accumulated in ascending order, matching the CUDA reduction order.
+    for (int i = 0; i < N; ++i) {
+        for (int k = 0; k < N; ++k) {
+            const double a = A[static_cast<size_t>(i) * N + k];
+            const size_t bRow = static_cast<size_t>(k) * N;
+            const size_t cRow = static_cast<size_t>(i) * N;
+            for (int j = 0; j < N; ++j) {
+                C[cRow + j] += a * B[bRow + j];
+            }
+        }
+    }
+}
+
+static ErrorStats compareDouble(const vector<double> &actual,
+                                const vector<double> &reference)
+{
+    ErrorStats e;
+    double sumSq = 0.0;
+    for (size_t i = 0; i < actual.size(); ++i) {
+        const double d = fabs(actual[i] - reference[i]);
+        e.maxAbs = max(e.maxAbs, d);
+        sumSq += d * d;
+    }
+    e.rmse = sqrt(sumSq / max<size_t>(1, actual.size()));
+    return e;
+}
+
+static ErrorStats compareFloatToDouble(const vector<float> &actual,
+                                       const vector<double> &reference,
+                                       int N,
+                                       int paddedN)
+{
+    ErrorStats e;
+    double sumSq = 0.0;
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            const double d = fabs(static_cast<double>(
+                actual[static_cast<size_t>(i) * paddedN + j])
+                - reference[static_cast<size_t>(i) * N + j]);
+            e.maxAbs = max(e.maxAbs, d);
+            sumSq += d * d;
+        }
+    }
+    e.rmse = sqrt(sumSq / max<size_t>(1, static_cast<size_t>(N) * N));
+    return e;
+}
+
+template <typename CopyInputs>
+static double measureH2D(CopyInputs copyInputs,
+                         cudaEvent_t start,
+                         cudaEvent_t stop)
+{
+    CUDA_CHECK(cudaEventRecord(start));
+    copyInputs();
+    CUDA_CHECK(cudaEventRecord(stop));
+    CUDA_CHECK(cudaEventSynchronize(stop));
+    float ms = 0.0f;
+    CUDA_CHECK(cudaEventElapsedTime(&ms, start, stop));
+    return ms;
+}
