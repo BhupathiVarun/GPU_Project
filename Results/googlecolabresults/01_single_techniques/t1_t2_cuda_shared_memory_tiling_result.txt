@@ -1,0 +1,110 @@
+
+
+==========================================
+MATRIX SIZE: 256 x 256
+==========================================
+
+======= SHARED MEMORY CUDA MATRIX MULTIPLICATION =======
+Matrix size             : 256 x 256
+Tile size               : 16 x 16
+Threads per block       : 256
+Blocks in grid          : 16 x 16
+
+--- Timing Results ---
+H2D transfer time       : 0.349152 ms
+D2H transfer time       : 0.170784 ms
+Kernel median time      : 0.368384 ms
+Kernel average time     : 0.369254 ms
+
+--- Performance ---
+GPU performance         : 91.0855 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8743
+Maximum absolute error  : 1.55431e-15
+Correctness             : PASSED
+==========================================
+MATRIX SIZE: 512 x 512
+==========================================
+
+======= SHARED MEMORY CUDA MATRIX MULTIPLICATION =======
+Matrix size             : 512 x 512
+Tile size               : 16 x 16
+Threads per block       : 256
+Blocks in grid          : 32 x 32
+
+--- Timing Results ---
+H2D transfer time       : 1.15517 ms
+D2H transfer time       : 0.544608 ms
+Kernel median time      : 1.58128 ms
+Kernel average time     : 1.55218 ms
+
+--- Performance ---
+GPU performance         : 169.758 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8622
+Maximum absolute error  : 3.55271e-15
+Correctness             : PASSED
+==========================================
+MATRIX SIZE: 1024 x 1024
+==========================================
+
+======= SHARED MEMORY CUDA MATRIX MULTIPLICATION =======
+Matrix size             : 1024 x 1024
+Tile size               : 16 x 16
+Threads per block       : 256
+Blocks in grid          : 64 x 64
+
+--- Timing Results ---
+H2D transfer time       : 4.10675 ms
+D2H transfer time       : 1.94976 ms
+Kernel median time      : 10.7139 ms
+Kernel average time     : 10.6773 ms
+
+--- Performance ---
+GPU performance         : 200.439 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.6119
+Maximum absolute error  : 7.10543e-15
+Correctness             : PASSED
+
+
+
+results/t1_tiling_shared/t1_N1024.txt:Matrix size             : 1024 x 1024
+results/t1_tiling_shared/t1_N1024.txt:Tile size               : 16 x 16
+results/t1_tiling_shared/t1_N1024.txt:Threads per block       : 256
+results/t1_tiling_shared/t1_N1024.txt:Blocks in grid          : 64 x 64
+results/t1_tiling_shared/t1_N1024.txt:H2D transfer time       : 4.10675 ms
+results/t1_tiling_shared/t1_N1024.txt:D2H transfer time       : 1.94976 ms
+results/t1_tiling_shared/t1_N1024.txt:Kernel median time      : 10.7139 ms
+results/t1_tiling_shared/t1_N1024.txt:Kernel average time     : 10.6773 ms
+results/t1_tiling_shared/t1_N1024.txt:GPU performance         : 200.439 GFLOP/s
+results/t1_tiling_shared/t1_N1024.txt:--- Correctness ---
+results/t1_tiling_shared/t1_N1024.txt:Maximum absolute error  : 7.10543e-15
+results/t1_tiling_shared/t1_N1024.txt:Correctness             : PASSED
+results/t1_tiling_shared/t1_N256.txt:Matrix size             : 256 x 256
+results/t1_tiling_shared/t1_N256.txt:Tile size               : 16 x 16
+results/t1_tiling_shared/t1_N256.txt:Threads per block       : 256
+results/t1_tiling_shared/t1_N256.txt:Blocks in grid          : 16 x 16
+results/t1_tiling_shared/t1_N256.txt:H2D transfer time       : 0.349152 ms
+results/t1_tiling_shared/t1_N256.txt:D2H transfer time       : 0.170784 ms
+results/t1_tiling_shared/t1_N256.txt:Kernel median time      : 0.368384 ms
+results/t1_tiling_shared/t1_N256.txt:Kernel average time     : 0.369254 ms
+results/t1_tiling_shared/t1_N256.txt:GPU performance         : 91.0855 GFLOP/s
+results/t1_tiling_shared/t1_N256.txt:--- Correctness ---
+results/t1_tiling_shared/t1_N256.txt:Maximum absolute error  : 1.55431e-15
+results/t1_tiling_shared/t1_N256.txt:Correctness             : PASSED
+results/t1_tiling_shared/t1_N512.txt:Matrix size             : 512 x 512
+results/t1_tiling_shared/t1_N512.txt:Tile size               : 16 x 16
+results/t1_tiling_shared/t1_N512.txt:Threads per block       : 256
+results/t1_tiling_shared/t1_N512.txt:Blocks in grid          : 32 x 32
+results/t1_tiling_shared/t1_N512.txt:H2D transfer time       : 1.15517 ms
+results/t1_tiling_shared/t1_N512.txt:D2H transfer time       : 0.544608 ms
+results/t1_tiling_shared/t1_N512.txt:Kernel median time      : 1.58128 ms
+results/t1_tiling_shared/t1_N512.txt:Kernel average time     : 1.55218 ms
+results/t1_tiling_shared/t1_N512.txt:GPU performance         : 169.758 GFLOP/s
+results/t1_tiling_shared/t1_N512.txt:--- Correctness ---
+results/t1_tiling_shared/t1_N512.txt:Maximum absolute error  : 3.55271e-15
+results/t1_tiling_shared/t1_N512.txt:Correctness             : PASSED
