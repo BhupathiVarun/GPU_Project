@@ -1,0 +1,210 @@
+########################################
+FINAL MATRIX MULTIPLICATION: N = 256
+########################################
+============================================================
+FINAL GPU MATRIX MULTIPLICATION
+GPU                         : Tesla T4 (40 SMs, CC 7.5)
+Matrix size                 : 256 x 256
+FP64 T4 tile BM, BN, BK     : 16, 32, 16
+FP64 C2 register tile RM,RN : 2, 2
+FP64 output tile per block  : 32 x 64
+FP64 threads per block      : 512
+Warm-ups / timed runs       : 2 / 20
+
+Computing FP64 CPU reference...
+CPU reference time          : 6.460303 ms
+FP64 H2D transfer time      : 0.883232 ms
+
+======= FINAL CUSTOM FP64 KERNEL =======
+Shared memory required      : 12672 bytes
+Default shared memory limit : 49152 bytes
+Opt-in shared memory limit  : 65536 bytes
+Registers per thread        : 58
+Local memory per thread     : 0 bytes (nonzero can indicate spills)
+Active blocks per SM        : 2
+Block shape                 : 32 x 16 threads
+Grid                        : 4 x 8 blocks
+Kernel median time          : 0.432272 ms
+Kernel average time         : 0.432712 ms
+Performance                 : 77.623419 GFLOP/s
+Maximum absolute error      : 0.000000
+RMSE                        : 0.000000
+Correctness                 : PASSED
+RESULT,final_fp64_custom,256,0.432272,0.432712,77.623419,0.000000
+
+======= cuBLAS DGEMM (FP64 REFERENCE) =======
+Kernel median time          : 0.429968 ms
+Kernel average time         : 0.432541 ms
+Performance                 : 78.039370 GFLOP/s
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+RESULT,cublas_dgemm_fp64,256,0.429968,0.432541,78.039370,0.000000
+
+======= TENSOR CORE PATH (FP16 INPUT / FP32 ACCUMULATION) =======
+Original matrix size        : 256 x 256
+Padded WMMA matrix size     : 256 x 256
+Block tile                  : 64 x 64
+Warps per block             : 4
+H2D transfer time           : 0.093696 ms
+Kernel median time          : 0.018912 ms
+Kernel average time         : 0.019026 ms
+Effective throughput        : 1774.240391 GFLOP/s (padded work)
+Maximum absolute error      : 0.001135
+RMSE                        : 0.000376
+FP16-input tolerance        : 0.010000
+Accuracy check              : PASSED
+RESULT,final_wmma_fp16_fp32,256,0.018912,0.019026,1774.240391,0.001135
+
+--- cuBLAS Tensor Core Reference ---
+Kernel median time          : 0.025280 ms
+Kernel average time         : 0.026074 ms
+Effective throughput        : 1327.311359 GFLOP/s (padded work)
+Maximum absolute error      : 0.001134
+RMSE                        : 0.000376
+RESULT,cublas_gemmex_fp16_fp32,256,0.025280,0.026074,1327.311359,0.001134
+
+======= FINAL SUMMARY =======
+N                           : 256
+Custom FP64                 : 0.432272 ms, 77.623419 GFLOP/s, max error 0.000000
+cuBLAS DGEMM FP64           : 0.429968 ms, 78.039370 GFLOP/s, max error 0.000000
+Tensor Core path            : executed (FP16 input / FP32 output)
+########################################
+FINAL MATRIX MULTIPLICATION: N = 512
+########################################
+============================================================
+FINAL GPU MATRIX MULTIPLICATION
+GPU                         : Tesla T4 (40 SMs, CC 7.5)
+Matrix size                 : 512 x 512
+FP64 T4 tile BM, BN, BK     : 16, 32, 16
+FP64 C2 register tile RM,RN : 2, 2
+FP64 output tile per block  : 32 x 64
+FP64 threads per block      : 512
+Warm-ups / timed runs       : 2 / 20
+
+Computing FP64 CPU reference...
+CPU reference time          : 53.366711 ms
+FP64 H2D transfer time      : 1.133376 ms
+
+======= FINAL CUSTOM FP64 KERNEL =======
+Shared memory required      : 12672 bytes
+Default shared memory limit : 49152 bytes
+Opt-in shared memory limit  : 65536 bytes
+Registers per thread        : 58
+Local memory per thread     : 0 bytes (nonzero can indicate spills)
+Active blocks per SM        : 2
+Block shape                 : 32 x 16 threads
+Grid                        : 8 x 16 blocks
+Kernel median time          : 2.812016 ms
+Kernel average time         : 2.973120 ms
+Performance                 : 95.460145 GFLOP/s
+Maximum absolute error      : 0.000000
+RMSE                        : 0.000000
+Correctness                 : PASSED
+RESULT,final_fp64_custom,512,2.812016,2.973120,95.460145,0.000000
+
+======= cuBLAS DGEMM (FP64 REFERENCE) =======
+Kernel median time          : 2.772720 ms
+Kernel average time         : 2.776918 ms
+Performance                 : 96.813046 GFLOP/s
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+RESULT,cublas_dgemm_fp64,512,2.772720,2.776918,96.813046,0.000000
+
+======= TENSOR CORE PATH (FP16 INPUT / FP32 ACCUMULATION) =======
+Original matrix size        : 512 x 512
+Padded WMMA matrix size     : 512 x 512
+Block tile                  : 64 x 64
+Warps per block             : 4
+H2D transfer time           : 0.302752 ms
+Kernel median time          : 0.038144 ms
+Kernel average time         : 0.038072 ms
+Effective throughput        : 7037.422842 GFLOP/s (padded work)
+Maximum absolute error      : 0.002119
+RMSE                        : 0.001015
+FP16-input tolerance        : 0.010000
+Accuracy check              : PASSED
+RESULT,final_wmma_fp16_fp32,512,0.038144,0.038072,7037.422842,0.002119
+
+--- cuBLAS Tensor Core Reference ---
+Kernel median time          : 0.034800 ms
+Kernel average time         : 0.036914 ms
+Effective throughput        : 7713.662420 GFLOP/s (padded work)
+Maximum absolute error      : 0.002118
+RMSE                        : 0.001015
+RESULT,cublas_gemmex_fp16_fp32,512,0.034800,0.036914,7713.662420,0.002118
+
+======= FINAL SUMMARY =======
+N                           : 512
+Custom FP64                 : 2.812016 ms, 95.460145 GFLOP/s, max error 0.000000
+cuBLAS DGEMM FP64           : 2.772720 ms, 96.813046 GFLOP/s, max error 0.000000
+Tensor Core path            : executed (FP16 input / FP32 output)
+########################################
+FINAL MATRIX MULTIPLICATION: N = 1024
+########################################
+============================================================
+FINAL GPU MATRIX MULTIPLICATION
+GPU                         : Tesla T4 (40 SMs, CC 7.5)
+Matrix size                 : 1024 x 1024
+FP64 T4 tile BM, BN, BK     : 16, 32, 16
+FP64 C2 register tile RM,RN : 2, 2
+FP64 output tile per block  : 32 x 64
+FP64 threads per block      : 512
+Warm-ups / timed runs       : 2 / 20
+
+Computing FP64 CPU reference...
+CPU reference time          : 418.482411 ms
+FP64 H2D transfer time      : 3.911936 ms
+
+======= FINAL CUSTOM FP64 KERNEL =======
+Shared memory required      : 12672 bytes
+Default shared memory limit : 49152 bytes
+Opt-in shared memory limit  : 65536 bytes
+Registers per thread        : 58
+Local memory per thread     : 0 bytes (nonzero can indicate spills)
+Active blocks per SM        : 2
+Block shape                 : 32 x 16 threads
+Grid                        : 16 x 32 blocks
+Kernel median time          : 13.558016 ms
+Kernel average time         : 12.112678 ms
+Performance                 : 158.392177 GFLOP/s
+Maximum absolute error      : 0.000000
+RMSE                        : 0.000000
+Correctness                 : PASSED
+RESULT,final_fp64_custom,1024,13.558016,12.112678,158.392177,0.000000
+
+======= cuBLAS DGEMM (FP64 REFERENCE) =======
+Kernel median time          : 10.507200 ms
+Kernel average time         : 10.550323 ms
+Performance                 : 204.382100 GFLOP/s
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+RESULT,cublas_dgemm_fp64,1024,10.507200,10.550323,204.382100,0.000000
+
+======= TENSOR CORE PATH (FP16 INPUT / FP32 ACCUMULATION) =======
+Original matrix size        : 1024 x 1024
+Padded WMMA matrix size     : 1024 x 1024
+Block tile                  : 64 x 64
+Warps per block             : 4
+H2D transfer time           : 1.019840 ms
+Kernel median time          : 0.106496 ms
+Kernel average time         : 0.106144 ms
+Effective throughput        : 20164.923304 GFLOP/s (padded work)
+Maximum absolute error      : 0.004156
+RMSE                        : 0.001656
+FP16-input tolerance        : 0.010000
+Accuracy check              : PASSED
+RESULT,final_wmma_fp16_fp32,1024,0.106496,0.106144,20164.923304,0.004156
+
+--- cuBLAS Tensor Core Reference ---
+Kernel median time          : 0.065856 ms
+Kernel average time         : 0.066032 ms
+Effective throughput        : 32608.776329 GFLOP/s (padded work)
+Maximum absolute error      : 0.004156
+RMSE                        : 0.001656
+RESULT,cublas_gemmex_fp16_fp32,1024,0.065856,0.066032,32608.776329,0.004156
+
+======= FINAL SUMMARY =======
+N                           : 1024
+Custom FP64                 : 13.558016 ms, 158.392177 GFLOP/s, max error 0.000000
+cuBLAS DGEMM FP64           : 10.507200 ms, 204.382100 GFLOP/s, max error 0.000000
+Tensor Core path            : executed (FP16 input / FP32 output)
