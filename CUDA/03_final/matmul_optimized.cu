@@ -435,3 +435,322 @@ static double measureH2D(CopyInputs copyInputs,
     CUDA_CHECK(cudaEventElapsedTime(&ms, start, stop));
     return ms;
 }
+
+
+int main(int argc, char **argv)
+{
+    int N = 256;
+    if (argc >= 2) N = atoi(argv[1]);
+    if (N <= 0) {
+        cerr << "Matrix size must be positive.\n";
+        return EXIT_FAILURE;
+    }
+
+    const size_t maxSize = numeric_limits<size_t>::max();
+    if (static_cast<size_t>(N) > maxSize / static_cast<size_t>(N)) {
+        cerr << "Matrix element count overflows size_t.\n";
+        return EXIT_FAILURE;
+    }
+    const size_t elements = static_cast<size_t>(N) * N;
+    if (elements > maxSize / sizeof(double)) {
+        cerr << "Matrix allocation size overflows size_t.\n";
+        return EXIT_FAILURE;
+    }
+    const size_t doubleBytes = elements * sizeof(double);
+
+    cudaDeviceProp prop;
+    CUDA_CHECK(cudaGetDeviceProperties(&prop, 0));
+    cout << fixed << setprecision(6);
+    cout << "============================================================\n";
+    cout << "FINAL GPU MATRIX MULTIPLICATION\n";
+    cout << "GPU                         : " << prop.name << " ("
+         << prop.multiProcessorCount << " SMs, CC "
+         << prop.major << "." << prop.minor << ")\n";
+    cout << "Matrix size                 : " << N << " x " << N << "\n";
+    cout << "FP64 T4 tile BM, BN, BK     : "
+         << FINAL_BM << ", " << FINAL_BN << ", " << FINAL_BK << "\n";
+    cout << "FP64 C2 register tile RM,RN : "
+         << FINAL_RM << ", " << FINAL_RN << "\n";
+    cout << "FP64 output tile per block  : "
+         << FINAL_BM * FINAL_RM << " x " << FINAL_BN * FINAL_RN << "\n";
+    cout << "FP64 threads per block      : " << FINAL_BM * FINAL_BN << "\n";
+    cout << "Warm-ups / timed runs       : " << WARMUP_RUNS
+         << " / " << TIMED_RUNS << "\n";
+
+    vector<double> h_A(elements), h_B(elements), h_C(elements), h_reference(elements);
+    for (size_t i = 0; i < elements; ++i) {
+        h_A[i] = (static_cast<int>((i * 17 + 3) % 101) - 50) / 100.0;
+        h_B[i] = (static_cast<int>((i * 13 + 7) % 101) - 50) / 100.0;
+    }
+
+    cout << "\nComputing FP64 CPU reference...\n";
+    const auto cpuStart = chrono::high_resolution_clock::now();
+    cpuMatrixMultiply(h_A, h_B, h_reference, N);
+    const auto cpuStop = chrono::high_resolution_clock::now();
+    const double cpuMs = chrono::duration<double, milli>(cpuStop - cpuStart).count();
+    cout << "CPU reference time          : " << cpuMs << " ms\n";
+
+    double *d_A = nullptr;
+    double *d_B = nullptr;
+    double *d_C = nullptr;
+    CUDA_CHECK(cudaMalloc(&d_A, doubleBytes));
+    CUDA_CHECK(cudaMalloc(&d_B, doubleBytes));
+    CUDA_CHECK(cudaMalloc(&d_C, doubleBytes));
+
+    cudaEvent_t start, stop;
+    CUDA_CHECK(cudaEventCreate(&start));
+    CUDA_CHECK(cudaEventCreate(&stop));
+
+    const double h2dMs = measureH2D([&]() {
+        CUDA_CHECK(cudaMemcpy(d_A, h_A.data(), doubleBytes, cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(d_B, h_B.data(), doubleBytes, cudaMemcpyHostToDevice));
+    }, start, stop);
+    cout << "FP64 H2D transfer time      : " << h2dMs << " ms\n";
+
+    // -------------------------------------------------------------------------
+    // 1) FINAL CUSTOM FP64 KERNEL: coalescing + shared tiling + register block.
+    // -------------------------------------------------------------------------
+    const size_t outM = static_cast<size_t>(FINAL_BM) * FINAL_RM;
+    const size_t outN = static_cast<size_t>(FINAL_BN) * FINAL_RN;
+    const size_t asElements = outM * (static_cast<size_t>(FINAL_BK) + 1);
+    const size_t bsElements = static_cast<size_t>(FINAL_BK) * (outN + 1);
+    const size_t finalSharedBytes = (asElements + bsElements) * sizeof(double);
+
+    const size_t defaultShared = static_cast<size_t>(prop.sharedMemPerBlock);
+    const size_t optinShared = (prop.sharedMemPerBlockOptin > 0)
+        ? static_cast<size_t>(prop.sharedMemPerBlockOptin) : defaultShared;
+
+    bool fp64FinalRan = false;
+    Timing finalFp64Timing;
+    ErrorStats finalFp64Error;
+
+    cout << "\n======= FINAL CUSTOM FP64 KERNEL =======\n";
+    cout << "Shared memory required      : " << finalSharedBytes << " bytes\n";
+    cout << "Default shared memory limit : " << defaultShared << " bytes\n";
+    cout << "Opt-in shared memory limit  : " << optinShared << " bytes\n";
+
+    if (finalSharedBytes > optinShared) {
+        cout << "FINAL FP64 kernel skipped: selected T4/C2 configuration exceeds this GPU's shared-memory limit.\n";
+    } else {
+        if (finalSharedBytes > defaultShared) {
+            CUDA_CHECK(cudaFuncSetAttribute(
+                (const void *)matmulFinalFP64<FINAL_BM, FINAL_BN, FINAL_BK,
+                                               FINAL_RM, FINAL_RN>,
+                cudaFuncAttributeMaxDynamicSharedMemorySize,
+                static_cast<int>(finalSharedBytes)));
+        }
+
+        cudaFuncAttributes attr;
+        CUDA_CHECK(cudaFuncGetAttributes(
+            &attr, (const void *)matmulFinalFP64<FINAL_BM, FINAL_BN, FINAL_BK,
+                                                  FINAL_RM, FINAL_RN>));
+        int activeBlocks = 0;
+        CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+            &activeBlocks,
+            (const void *)matmulFinalFP64<FINAL_BM, FINAL_BN, FINAL_BK,
+                                          FINAL_RM, FINAL_RN>,
+            FINAL_BM * FINAL_BN, finalSharedBytes));
+
+        cout << "Registers per thread        : " << attr.numRegs << "\n";
+        cout << "Local memory per thread     : " << attr.localSizeBytes
+             << " bytes (nonzero can indicate spills)\n";
+        cout << "Active blocks per SM        : " << activeBlocks << "\n";
+
+        const dim3 block(FINAL_BN, FINAL_BM);
+        const dim3 grid(static_cast<unsigned>((N + outN - 1) / outN),
+                        static_cast<unsigned>((N + outM - 1) / outM));
+        auto launchFinal = [&]() {
+            matmulFinalFP64<FINAL_BM, FINAL_BN, FINAL_BK, FINAL_RM, FINAL_RN>
+                <<<grid, block, finalSharedBytes>>>(d_A, d_B, d_C, N);
+        };
+
+        const double fp64Ops = 2.0 * static_cast<double>(N) * N * N;
+        finalFp64Timing = benchmark("final_fp64_custom", launchFinal,
+                                    fp64Ops, start, stop);
+        CUDA_CHECK(cudaMemcpy(h_C.data(), d_C, doubleBytes, cudaMemcpyDeviceToHost));
+        finalFp64Error = compareDouble(h_C, h_reference);
+        fp64FinalRan = true;
+
+        cout << "Block shape                 : " << FINAL_BN << " x " << FINAL_BM
+             << " threads\n";
+        cout << "Grid                        : " << grid.x << " x " << grid.y << " blocks\n";
+        cout << "Kernel median time          : " << finalFp64Timing.medianMs << " ms\n";
+        cout << "Kernel average time         : " << finalFp64Timing.averageMs << " ms\n";
+        cout << "Performance                 : " << finalFp64Timing.gflops << " GFLOP/s\n";
+        cout << "Maximum absolute error      : " << finalFp64Error.maxAbs << "\n";
+        cout << "RMSE                        : " << finalFp64Error.rmse << "\n";
+        cout << "Correctness                 : "
+             << (finalFp64Error.maxAbs <= FP64_TOLERANCE ? "PASSED" : "FAILED") << "\n";
+        cout << "RESULT,final_fp64_custom," << N << ","
+             << finalFp64Timing.medianMs << "," << finalFp64Timing.averageMs << ","
+             << finalFp64Timing.gflops << "," << finalFp64Error.maxAbs << "\n";
+    }
+
+    // -------------------------------------------------------------------------
+    // 2) cuBLAS DGEMM: FP64 reference at the same arithmetic precision.
+    // Row-major C=A*B is represented as column-major C^T=B^T*A^T, so B then A.
+    // -------------------------------------------------------------------------
+    cout << "\n======= cuBLAS DGEMM (FP64 REFERENCE) =======\n";
+    cublasHandle_t handle;
+    CUBLAS_CHECK(cublasCreate(&handle));
+    CUBLAS_CHECK(cublasSetStream(handle, 0));
+
+    const double alphaD = 1.0;
+    const double betaD = 0.0;
+    auto launchDgemm = [&]() {
+        CUBLAS_CHECK(cublasDgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N,
+                                 N, N, N, &alphaD,
+                                 d_B, N, d_A, N, &betaD, d_C, N));
+    };
+    const double fp64Ops = 2.0 * static_cast<double>(N) * N * N;
+    Timing dgemmTiming = benchmark("cublas_dgemm_fp64", launchDgemm,
+                                  fp64Ops, start, stop);
+    CUDA_CHECK(cudaMemcpy(h_C.data(), d_C, doubleBytes, cudaMemcpyDeviceToHost));
+    ErrorStats dgemmError = compareDouble(h_C, h_reference);
+
+    cout << "Kernel median time          : " << dgemmTiming.medianMs << " ms\n";
+    cout << "Kernel average time         : " << dgemmTiming.averageMs << " ms\n";
+    cout << "Performance                 : " << dgemmTiming.gflops << " GFLOP/s\n";
+    cout << "Maximum absolute error      : " << dgemmError.maxAbs << "\n";
+    cout << "Correctness                 : "
+         << (dgemmError.maxAbs <= FP64_TOLERANCE ? "PASSED" : "FAILED") << "\n";
+    cout << "RESULT,cublas_dgemm_fp64," << N << ","
+         << dgemmTiming.medianMs << "," << dgemmTiming.averageMs << ","
+         << dgemmTiming.gflops << "," << dgemmError.maxAbs << "\n";
+
+    // -------------------------------------------------------------------------
+    // 3) Tensor Core path: WMMA tiled kernel and cuBLAS GEMMEx.
+    // Inputs are converted to FP16; accumulation and outputs are FP32.
+    // Pad N to a multiple of 64 so every 64x64 WMMA block is fully in bounds.
+    // -------------------------------------------------------------------------
+    cout << "\n======= TENSOR CORE PATH (FP16 INPUT / FP32 ACCUMULATION) =======\n";
+    bool tensorRan = false;
+    if (prop.major < 7) {
+        cout << "Tensor Core WMMA skipped: this GPU has compute capability below 7.0.\n";
+    } else {
+        const int P = ((N + TC_TILE_M - 1) / TC_TILE_M) * TC_TILE_M;
+        const size_t paddedElements = static_cast<size_t>(P) * P;
+        const size_t halfBytes = paddedElements * sizeof(__half);
+        const size_t floatBytes = paddedElements * sizeof(float);
+
+        vector<__half> h_Ah(paddedElements, __float2half(0.0f));
+        vector<__half> h_Bh(paddedElements, __float2half(0.0f));
+        vector<float> h_Cf(paddedElements, 0.0f);
+
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < N; ++j) {
+                const size_t src = static_cast<size_t>(i) * N + j;
+                const size_t dst = static_cast<size_t>(i) * P + j;
+                h_Ah[dst] = __float2half(static_cast<float>(h_A[src]));
+                h_Bh[dst] = __float2half(static_cast<float>(h_B[src]));
+            }
+        }
+
+        __half *d_Ah = nullptr;
+        __half *d_Bh = nullptr;
+        float *d_Cf = nullptr;
+        CUDA_CHECK(cudaMalloc(&d_Ah, halfBytes));
+        CUDA_CHECK(cudaMalloc(&d_Bh, halfBytes));
+        CUDA_CHECK(cudaMalloc(&d_Cf, floatBytes));
+
+        const double tensorH2D = measureH2D([&]() {
+            CUDA_CHECK(cudaMemcpy(d_Ah, h_Ah.data(), halfBytes, cudaMemcpyHostToDevice));
+            CUDA_CHECK(cudaMemcpy(d_Bh, h_Bh.data(), halfBytes, cudaMemcpyHostToDevice));
+        }, start, stop);
+
+        const dim3 wmmaBlock(TC_THREADS);
+        const dim3 wmmaGrid(P / TC_TILE_N, P / TC_TILE_M);
+        auto launchWmma = [&]() {
+            matmulFinalWMMA<<<wmmaGrid, wmmaBlock>>>(d_Ah, d_Bh, d_Cf, P);
+        };
+
+        const double tensorOps = 2.0 * static_cast<double>(P) * P * P;
+        Timing wmmaTiming = benchmark("final_wmma_tensor_core", launchWmma,
+                                     tensorOps, start, stop);
+        CUDA_CHECK(cudaMemcpy(h_Cf.data(), d_Cf, floatBytes, cudaMemcpyDeviceToHost));
+        ErrorStats wmmaError = compareFloatToDouble(h_Cf, h_reference, N, P);
+
+        cout << "Original matrix size        : " << N << " x " << N << "\n";
+        cout << "Padded WMMA matrix size     : " << P << " x " << P << "\n";
+        cout << "Block tile                  : 64 x 64\n";
+        cout << "Warps per block             : 4\n";
+        cout << "H2D transfer time           : " << tensorH2D << " ms\n";
+        cout << "Kernel median time          : " << wmmaTiming.medianMs << " ms\n";
+        cout << "Kernel average time         : " << wmmaTiming.averageMs << " ms\n";
+        cout << "Effective throughput        : " << wmmaTiming.gflops << " GFLOP/s (padded work)\n";
+        cout << "Maximum absolute error      : " << wmmaError.maxAbs << "\n";
+        cout << "RMSE                        : " << wmmaError.rmse << "\n";
+        cout << "FP16-input tolerance        : " << TENSOR_TOLERANCE << "\n";
+        cout << "Accuracy check              : "
+             << (wmmaError.maxAbs <= TENSOR_TOLERANCE ? "PASSED" : "REVIEW ERROR") << "\n";
+        cout << "RESULT,final_wmma_fp16_fp32," << N << ","
+             << wmmaTiming.medianMs << "," << wmmaTiming.averageMs << ","
+             << wmmaTiming.gflops << "," << wmmaError.maxAbs << "\n";
+
+        // Vendor Tensor Core reference with the same FP16 inputs/FP32 output.
+        const float alphaF = 1.0f;
+        const float betaF = 0.0f;
+        auto launchGemmEx = [&]() {
+            CUBLAS_CHECK(cublasGemmEx(
+                handle,
+                CUBLAS_OP_N, CUBLAS_OP_N,
+                P, P, P,
+                &alphaF,
+                d_Bh, CUDA_R_16F, P,
+                d_Ah, CUDA_R_16F, P,
+                &betaF,
+                d_Cf, CUDA_R_32F, P,
+                CUBLAS_COMPUTE_32F,
+                CUBLAS_GEMM_DEFAULT));
+        };
+
+        Timing gemmExTiming = benchmark("cublas_gemmex_fp16_fp32", launchGemmEx,
+                                       tensorOps, start, stop);
+        CUDA_CHECK(cudaMemcpy(h_Cf.data(), d_Cf, floatBytes, cudaMemcpyDeviceToHost));
+        ErrorStats gemmExError = compareFloatToDouble(h_Cf, h_reference, N, P);
+
+        cout << "\n--- cuBLAS Tensor Core Reference ---\n";
+        cout << "Kernel median time          : " << gemmExTiming.medianMs << " ms\n";
+        cout << "Kernel average time         : " << gemmExTiming.averageMs << " ms\n";
+        cout << "Effective throughput        : " << gemmExTiming.gflops << " GFLOP/s (padded work)\n";
+        cout << "Maximum absolute error      : " << gemmExError.maxAbs << "\n";
+        cout << "RMSE                        : " << gemmExError.rmse << "\n";
+        cout << "RESULT,cublas_gemmex_fp16_fp32," << N << ","
+             << gemmExTiming.medianMs << "," << gemmExTiming.averageMs << ","
+             << gemmExTiming.gflops << "," << gemmExError.maxAbs << "\n";
+
+        tensorRan = true;
+        CUDA_CHECK(cudaFree(d_Ah));
+        CUDA_CHECK(cudaFree(d_Bh));
+        CUDA_CHECK(cudaFree(d_Cf));
+    }
+
+    // -------------------------------------------------------------------------
+    // Summary and cleanup.
+    // -------------------------------------------------------------------------
+    cout << "\n======= FINAL SUMMARY =======\n";
+    cout << "N                           : " << N << "\n";
+    if (fp64FinalRan) {
+        cout << "Custom FP64                 : " << finalFp64Timing.medianMs
+             << " ms, " << finalFp64Timing.gflops << " GFLOP/s, max error "
+             << finalFp64Error.maxAbs << "\n";
+    } else {
+        cout << "Custom FP64                 : SKIPPED (shared-memory limit)\n";
+    }
+    cout << "cuBLAS DGEMM FP64           : " << dgemmTiming.medianMs
+         << " ms, " << dgemmTiming.gflops << " GFLOP/s, max error "
+         << dgemmError.maxAbs << "\n";
+    cout << "Tensor Core path            : "
+         << (tensorRan ? "executed (FP16 input / FP32 output)" : "skipped") << "\n";
+
+    CUBLAS_CHECK(cublasDestroy(handle));
+    CUDA_CHECK(cudaEventDestroy(start));
+    CUDA_CHECK(cudaEventDestroy(stop));
+    CUDA_CHECK(cudaFree(d_A));
+    CUDA_CHECK(cudaFree(d_B));
+    CUDA_CHECK(cudaFree(d_C));
+
+    const bool fp64Correct = dgemmError.maxAbs <= FP64_TOLERANCE &&
+        (!fp64FinalRan || finalFp64Error.maxAbs <= FP64_TOLERANCE);
+    return fp64Correct ? EXIT_SUCCESS : EXIT_FAILURE;
+}
