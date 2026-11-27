@@ -1,0 +1,101 @@
+=================================
+MATRIX SIZE: 256 x 256
+=================================
+
+======= TENSOR CORE MATRIX MULTIPLICATION =======
+GPU input precision     : FP16
+Accumulation precision  : FP32
+Output precision        : FP32
+Matrix size             : 256 x 256
+
+--- Timing Results ---
+H2D transfer time       : 0.10572800 ms
+D2H transfer time       : 0.12345600 ms
+Kernel median time      : 0.02998400 ms
+Kernel average time     : 0.03320960 ms
+
+--- Performance ---
+GPU performance         : 1119.07793779 GFLOP/s
+
+--- Accuracy ---
+C[0]                    : -0.87422132
+Maximum absolute error  : 0.00113444
+Root mean square error  : 0.00037635
+Allowed error           : 0.01000000
+Correctness             : PASSED
+=================================
+MATRIX SIZE: 512 x 512
+=================================
+
+======= TENSOR CORE MATRIX MULTIPLICATION =======
+GPU input precision     : FP16
+Accumulation precision  : FP32
+Output precision        : FP32
+Matrix size             : 512 x 512
+
+--- Timing Results ---
+H2D transfer time       : 0.41920000 ms
+D2H transfer time       : 0.33427200 ms
+Kernel median time      : 0.04060800 ms
+Kernel average time     : 0.04283520 ms
+
+--- Performance ---
+GPU performance         : 6610.40819376 GFLOP/s
+
+--- Accuracy ---
+C[0]                    : -0.86219990
+Maximum absolute error  : 0.00211847
+Root mean square error  : 0.00101495
+Allowed error           : 0.01000000
+Correctness             : PASSED
+=================================
+MATRIX SIZE: 1024 x 1024
+=================================
+
+======= TENSOR CORE MATRIX MULTIPLICATION =======
+GPU input precision     : FP16
+Accumulation precision  : FP32
+Output precision        : FP32
+Matrix size             : 1024 x 1024
+
+--- Timing Results ---
+H2D transfer time       : 1.19744003 ms
+D2H transfer time       : 1.07379198 ms
+Kernel median time      : 0.12377600 ms
+Kernel average time     : 0.12662400 ms
+
+--- Performance ---
+GPU performance         : 17349.75749327 GFLOP/s
+
+--- Accuracy ---
+C[0]                    : -0.61056864
+Maximum absolute error  : 0.00415635
+Root mean square error  : 0.00165589
+Allowed error           : 0.01000000
+Correctness             : PASSED
+
+
+
+
+
+results/tensor_core/tensor_core_N1024.txt:Matrix size             : 1024 x 1024
+results/tensor_core/tensor_core_N1024.txt:Kernel median time      : 0.12377600 ms
+results/tensor_core/tensor_core_N1024.txt:Kernel average time     : 0.12662400 ms
+results/tensor_core/tensor_core_N1024.txt:GPU performance         : 17349.75749327 GFLOP/s
+results/tensor_core/tensor_core_N1024.txt:Maximum absolute error  : 0.00415635
+results/tensor_core/tensor_core_N1024.txt:Root mean square error  : 0.00165589
+results/tensor_core/tensor_core_N1024.txt:Correctness             : PASSED
+results/tensor_core/tensor_core_N256.txt:Matrix size             : 256 x 256
+results/tensor_core/tensor_core_N256.txt:Kernel median time      : 0.02998400 ms
+results/tensor_core/tensor_core_N256.txt:Kernel average time     : 0.03320960 ms
+results/tensor_core/tensor_core_N256.txt:GPU performance         : 1119.07793779 GFLOP/s
+results/tensor_core/tensor_core_N256.txt:Maximum absolute error  : 0.00113444
+results/tensor_core/tensor_core_N256.txt:Root mean square error  : 0.00037635
+results/tensor_core/tensor_core_N256.txt:Correctness             : PASSED
+results/tensor_core/tensor_core_N512.txt:Matrix size             : 512 x 512
+results/tensor_core/tensor_core_N512.txt:Kernel median time      : 0.04060800 ms
+results/tensor_core/tensor_core_N512.txt:Kernel average time     : 0.04283520 ms
+results/tensor_core/tensor_core_N512.txt:GPU performance         : 6610.40819376 GFLOP/s
+results/tensor_core/tensor_core_N512.txt:Maximum absolute error  : 0.00211847
+results/tensor_core/tensor_core_N512.txt:Root mean square error  : 0.00101495
+results/tensor_core/tensor_core_N512.txt:Correctness             : PASSED
