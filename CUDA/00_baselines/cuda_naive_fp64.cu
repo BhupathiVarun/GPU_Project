@@ -196,3 +196,47 @@ int main(int argc, char *argv[])
         if (error > 1e-9)
             correct = false;
     }
+    // Performance calculation
+    double operations = 2.0 * N * N * N;
+
+    double gflops = operations / (median_ms * 1e6);
+
+    cout << "\n========== BASIC CUDA MATRIX MULTIPLICATION ==========\n";
+
+    cout << "GPU matrix size          : " << N << " x " << N << endl;
+    cout << "Threads per block        : "
+         << threadsPerBlock.x * threadsPerBlock.y << endl;
+
+    cout << "Blocks in grid           : "
+         << blocksPerGrid.x << " x "
+         << blocksPerGrid.y << endl;
+
+    cout << "\n--- Timing Results ---\n";
+
+    cout << "H2D transfer time        : " << h2d_ms << " ms" << endl;
+    cout << "D2H transfer time        : " << d2h_ms << " ms" << endl;
+    cout << "Kernel median time       : " << median_ms << " ms" << endl;
+    cout << "Kernel average time      : " << average_ms << " ms" << endl;
+
+    cout << "\n--- Performance ---\n";
+
+    cout << "GPU performance          : " << gflops << " GFLOP/s" << endl;
+
+    cout << "\n--- Correctness ---\n";
+
+    cout << "C[0]                     : " << h_C[0] << endl;
+    cout << "Maximum absolute error   : " << maxError << endl;
+
+    cout << "Correctness              : "
+         << (correct ? "PASSED" : "FAILED") << endl;
+
+    // Cleanup
+    CUDA_CHECK(cudaEventDestroy(start));
+    CUDA_CHECK(cudaEventDestroy(stop));
+
+    CUDA_CHECK(cudaFree(d_A));
+    CUDA_CHECK(cudaFree(d_B));
+    CUDA_CHECK(cudaFree(d_C));
+
+    return correct ? 0 : 1;
+}
