@@ -197,3 +197,109 @@ matmulFinalFP64(const double *__restrict__ A,
         }
     }
 }
+
+constexpr int WMMA_M = 16;
+constexpr int WMMA_N = 16;
+constexpr int WMMA_K = 16;
+constexpr int TC_TILE_M = 64;
+constexpr int TC_TILE_N = 64;
+constexpr int TC_TILE_K = 64;
+constexpr int TC_PAD = 8;
+constexpr int TC_THREADS = 128;
+
+using WmmaFragA = wmma::fragment<wmma::matrix_a, WMMA_M, WMMA_N, WMMA_K,
+                                 __half, wmma::row_major>;
+using WmmaFragB = wmma::fragment<wmma::matrix_b, WMMA_M, WMMA_N, WMMA_K,
+                                 __half, wmma::row_major>;
+using WmmaFragC = wmma::fragment<wmma::accumulator, WMMA_M, WMMA_N, WMMA_K,
+                                 float>;
+
+__global__ void __launch_bounds__(TC_THREADS)
+matmulFinalWMMA(const __half *__restrict__ A,
+                const __half *__restrict__ B,
+                float *__restrict__ C,
+                int N)
+{
+    __shared__ __align__(128) __half As[TC_TILE_M][TC_TILE_K + TC_PAD];
+    __shared__ __align__(128) __half Bs[TC_TILE_K][TC_TILE_N + TC_PAD];
+
+    const int tid = threadIdx.x;
+    const int warpId = tid / 32;
+    const int warpRow = warpId / 2;
+    const int warpCol = warpId % 2;
+
+    const int blockRow = blockIdx.y * TC_TILE_M;
+    const int blockCol = blockIdx.x * TC_TILE_N;
+
+    WmmaFragC accum[2][2];
+    #pragma unroll
+    for (int i = 0; i < 2; ++i) {
+        #pragma unroll
+        for (int j = 0; j < 2; ++j) {
+            wmma::fill_fragment(accum[i][j], 0.0f);
+        }
+    }
+
+    for (int kBase = 0; kBase < N; kBase += TC_TILE_K) {
+        // Vectorized 16-byte global loads: eight consecutive FP16 values.
+        for (int idx = tid; idx < TC_TILE_M * TC_TILE_K / 8;
+             idx += TC_THREADS) {
+            const int r = idx / (TC_TILE_K / 8);
+            const int c = (idx % (TC_TILE_K / 8)) * 8;
+            *reinterpret_cast<int4 *>(&As[r][c]) =
+                *reinterpret_cast<const int4 *>(
+                    &A[static_cast<size_t>(blockRow + r) * N + kBase + c]);
+        }
+
+        for (int idx = tid; idx < TC_TILE_K * TC_TILE_N / 8;
+             idx += TC_THREADS) {
+            const int r = idx / (TC_TILE_N / 8);
+            const int c = (idx % (TC_TILE_N / 8)) * 8;
+            *reinterpret_cast<int4 *>(&Bs[r][c]) =
+                *reinterpret_cast<const int4 *>(
+                    &B[static_cast<size_t>(kBase + r) * N + blockCol + c]);
+        }
+
+        __syncthreads();
+
+        #pragma unroll
+        for (int kk = 0; kk < TC_TILE_K; kk += WMMA_K) {
+            WmmaFragA a[2];
+            WmmaFragB b[2];
+
+            #pragma unroll
+            for (int i = 0; i < 2; ++i) {
+                wmma::load_matrix_sync(
+                    a[i], &As[warpRow * 32 + i * WMMA_M][kk],
+                    TC_TILE_K + TC_PAD);
+            }
+            #pragma unroll
+            for (int j = 0; j < 2; ++j) {
+                wmma::load_matrix_sync(
+                    b[j], &Bs[kk][warpCol * 32 + j * WMMA_N],
+                    TC_TILE_N + TC_PAD);
+            }
+
+            #pragma unroll
+            for (int i = 0; i < 2; ++i) {
+                #pragma unroll
+                for (int j = 0; j < 2; ++j) {
+                    wmma::mma_sync(accum[i][j], a[i], b[j], accum[i][j]);
+                }
+            }
+        }
+
+        __syncthreads();
+    }
+
+    #pragma unroll
+    for (int i = 0; i < 2; ++i) {
+        #pragma unroll
+        for (int j = 0; j < 2; ++j) {
+            wmma::store_matrix_sync(
+                C + static_cast<size_t>(blockRow + warpRow * 32 + i * WMMA_M) * N
+                  + blockCol + warpCol * 32 + j * WMMA_N,
+                accum[i][j], N, wmma::mem_row_major);
+        }
+    }
+}
