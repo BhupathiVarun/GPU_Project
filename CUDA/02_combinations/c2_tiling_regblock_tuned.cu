@@ -159,3 +159,40 @@ matmulTiledRegBlocked(
         }
     }
 }
+
+typedef void (*LaunchFn)(const double *, const double *, double *, int,
+                         dim3, dim3, size_t);
+typedef cudaError_t (*AttributesFn)(cudaFuncAttributes *);
+typedef cudaError_t (*OccupancyFn)(int *, int, size_t);
+typedef cudaError_t (*SetDynamicSmemFn)(int);
+
+template <int RM, int RN>
+static void launchVariant(
+    const double *A, const double *B, double *C, int N,
+    dim3 grid, dim3 block, size_t sharedBytes)
+{
+    matmulTiledRegBlocked<RM, RN><<<grid, block, sharedBytes>>>(A, B, C, N);
+}
+
+template <int RM, int RN>
+static cudaError_t getVariantAttributes(cudaFuncAttributes *attr)
+{
+    return cudaFuncGetAttributes(attr, matmulTiledRegBlocked<RM, RN>);
+}
+
+template <int RM, int RN>
+static cudaError_t getVariantOccupancy(int *blocksPerSM, int threads,
+                                       size_t sharedBytes)
+{
+    return cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+        blocksPerSM, matmulTiledRegBlocked<RM, RN>, threads, sharedBytes);
+}
+
+template <int RM, int RN>
+static cudaError_t setVariantDynamicSmem(int bytes)
+{
+    return cudaFuncSetAttribute(
+        matmulTiledRegBlocked<RM, RN>,
+        cudaFuncAttributeMaxDynamicSharedMemorySize,
+        bytes);
+}
