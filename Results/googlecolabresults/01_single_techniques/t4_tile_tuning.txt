@@ -1,0 +1,187 @@
+
+
+======= T4 TILE-SIZE TUNING: SHARED-MEMORY MATRIX MULTIPLICATION =======
+Matrix size             : 256 x 256
+Tile size               : 8 x 8
+Threads per block       : 64
+Blocks in grid          : 32 x 32
+
+--- Timing Results ---
+H2D transfer time       : 0.373632 ms
+D2H transfer time       : 0.2136 ms
+Kernel median time      : 0.373056 ms
+Kernel average time     : 0.373914 ms
+
+--- Performance ---
+GPU performance         : 89.9448 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8743
+Maximum absolute error  : 1.55431e-15
+Correctness             : PASSED
+
+
+======= T4 TILE-SIZE TUNING: SHARED-MEMORY MATRIX MULTIPLICATION =======
+Matrix size             : 256 x 256
+Tile size               : 16 x 16
+Threads per block       : 256
+Blocks in grid          : 16 x 16
+
+--- Timing Results ---
+H2D transfer time       : 0.423072 ms
+D2H transfer time       : 0.16912 ms
+Kernel median time      : 0.36336 ms
+Kernel average time     : 0.363501 ms
+
+--- Performance ---
+GPU performance         : 92.3449 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8743
+Maximum absolute error  : 1.55431e-15
+Correctness             : PASSED
+
+
+======= T4 TILE-SIZE TUNING: SHARED-MEMORY MATRIX MULTIPLICATION =======
+Matrix size             : 256 x 256
+Tile size               : 32 x 32
+Threads per block       : 1024
+Blocks in grid          : 8 x 8
+
+--- Timing Results ---
+H2D transfer time       : 0.364384 ms
+D2H transfer time       : 0.19984 ms
+Kernel median time      : 0.288096 ms
+Kernel average time     : 0.288038 ms
+
+--- Performance ---
+GPU performance         : 116.47 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8743
+Maximum absolute error  : 1.55431e-15
+Correctness             : PASSED
+
+
+
+======= T4 TILE-SIZE TUNING: SHARED-MEMORY MATRIX MULTIPLICATION =======
+Matrix size             : 512 x 512
+Tile size               : 8 x 8
+Threads per block       : 64
+Blocks in grid          : 64 x 64
+
+--- Timing Results ---
+H2D transfer time       : 1.19683 ms
+D2H transfer time       : 0.575808 ms
+Kernel median time      : 2.64125 ms
+Kernel average time     : 2.64084 ms
+
+--- Performance ---
+GPU performance         : 101.632 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8622
+Maximum absolute error  : 3.55271e-15
+Correctness             : PASSED
+
+======= T4 TILE-SIZE TUNING: SHARED-MEMORY MATRIX MULTIPLICATION =======
+Matrix size             : 512 x 512
+Tile size               : 16 x 16
+Threads per block       : 256
+Blocks in grid          : 32 x 32
+
+--- Timing Results ---
+H2D transfer time       : 1.2351 ms
+D2H transfer time       : 0.555808 ms
+Kernel median time      : 2.60301 ms
+Kernel average time     : 2.60324 ms
+
+--- Performance ---
+GPU performance         : 103.125 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8622
+Maximum absolute error  : 3.55271e-15
+Correctness             : PASSED
+
+======= T4 TILE-SIZE TUNING: SHARED-MEMORY MATRIX MULTIPLICATION =======
+Matrix size             : 512 x 512
+Tile size               : 32 x 32
+Threads per block       : 1024
+Blocks in grid          : 16 x 16
+
+--- Timing Results ---
+H2D transfer time       : 1.20826 ms
+D2H transfer time       : 0.56752 ms
+Kernel median time      : 1.79661 ms
+Kernel average time     : 1.79754 ms
+
+--- Performance ---
+GPU performance         : 149.412 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8622
+Maximum absolute error  : 3.55271e-15
+Correctness             : PASSED
+
+
+
+======= T4 TILE-SIZE TUNING: SHARED-MEMORY MATRIX MULTIPLICATION =======
+Matrix size             : 1024 x 1024
+Tile size               : 8 x 8
+Threads per block       : 64
+Blocks in grid          : 128 x 128
+
+--- Timing Results ---
+H2D transfer time       : 4.01158 ms
+D2H transfer time       : 1.96387 ms
+Kernel median time      : 17.6128 ms
+Kernel average time     : 17.0749 ms
+
+--- Performance ---
+GPU performance         : 121.927 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.6119
+Maximum absolute error  : 7.10543e-15
+Correctness             : PASSED
+
+======= T4 TILE-SIZE TUNING: SHARED-MEMORY MATRIX MULTIPLICATION =======
+Matrix size             : 1024 x 1024
+Tile size               : 16 x 16
+Threads per block       : 256
+Blocks in grid          : 64 x 64
+
+--- Timing Results ---
+H2D transfer time       : 4.27939 ms
+D2H transfer time       : 1.87939 ms
+Kernel median time      : 14.6473 ms
+Kernel average time     : 14.6475 ms
+
+--- Performance ---
+GPU performance         : 146.613 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.6119
+Maximum absolute error  : 7.10543e-15
+Correctness             : PASSED
+
+======= T4 TILE-SIZE TUNING: SHARED-MEMORY MATRIX MULTIPLICATION =======
+Matrix size             : 1024 x 1024
+Tile size               : 32 x 32
+Threads per block       : 1024
+Blocks in grid          : 32 x 32
+
+--- Timing Results ---
+H2D transfer time       : 4.1657 ms
+D2H transfer time       : 1.93046 ms
+Kernel median time      : 16.194 ms
+Kernel average time     : 16.1942 ms
+
+--- Performance ---
+GPU performance         : 132.61 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.6119
+Maximum absolute error  : 7.10543e-15
+Correctness             : PASSED
