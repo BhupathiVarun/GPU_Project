@@ -30,3 +30,16 @@ do {                                                          \
         std::exit(EXIT_FAILURE);                              \
     }                                                         \
 } while (0)
+
+
+double median(std::vector<double> values)
+{
+    std::sort(values.begin(), values.end());
+
+    size_t n = values.size();
+
+    if (n % 2 == 0)
+        return (values[n / 2 - 1] + values[n / 2]) / 2.0;
+
+    return values[n / 2];
+}
