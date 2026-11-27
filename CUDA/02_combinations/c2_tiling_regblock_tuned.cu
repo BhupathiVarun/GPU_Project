@@ -262,3 +262,115 @@ static dim3 gridFor(int N, int rm, int rn)
     return dim3((N + outN - 1) / outN,
                 (N + outM - 1) / outM);
 }
+
+
+static Result runVariant(
+    const Variant &v,
+    const double *d_A,
+    const double *d_B,
+    double *d_C,
+    vector<double> &h_C,
+    const vector<double> &h_reference,
+    int N,
+    size_t bytes,
+    size_t maxSharedPerBlock,
+    size_t defaultSharedPerBlock,
+    cudaEvent_t start,
+    cudaEvent_t stop)
+{
+    Result r = {};
+    r.supported = false;
+    r.correct = false;
+    r.sharedBytes = v.sharedBytes;
+
+    if (v.sharedBytes > maxSharedPerBlock) {
+        cout << "\nSKIPPED " << v.name << ": requires " << v.sharedBytes
+             << " bytes shared memory; this GPU supports at most "
+             << maxSharedPerBlock << " bytes per block.\n";
+        return r;
+    }
+
+    // Ask CUDA to permit an opt-in dynamic shared-memory size when required.
+    if (v.sharedBytes > defaultSharedPerBlock) {
+        if (v.sharedBytes > static_cast<size_t>(numeric_limits<int>::max())) {
+            cout << "\nSKIPPED " << v.name << ": shared-memory size exceeds int range.\n";
+            return r;
+        }
+        CUDA_CHECK(v.setDynamicSmem(static_cast<int>(v.sharedBytes)));
+    }
+
+    cudaFuncAttributes attr;
+    CUDA_CHECK(v.getAttributes(&attr));
+    r.registersPerThread = attr.numRegs;
+    r.localBytesPerThread = static_cast<size_t>(attr.localSizeBytes);
+
+    CUDA_CHECK(v.getOccupancy(&r.activeBlocksPerSM,
+                              static_cast<int>(v.block.x * v.block.y),
+                              v.sharedBytes));
+
+    if (r.activeBlocksPerSM <= 0) {
+        cout << "\nSKIPPED " << v.name
+             << ": CUDA reports zero active blocks per SM for this configuration.\n";
+        return r;
+    }
+
+    // Clear C so a missing output store cannot pass by reusing an old result.
+    CUDA_CHECK(cudaMemset(d_C, 0, bytes));
+
+    // Warm-up (excluded from timing).
+    v.launch(d_A, d_B, d_C, N, v.grid, v.block, v.sharedBytes);
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    vector<float> times;
+    times.reserve(TIMED_RUNS);
+
+    for (int run = 0; run < TIMED_RUNS; ++run) {
+        CUDA_CHECK(cudaEventRecord(start));
+        v.launch(d_A, d_B, d_C, N, v.grid, v.block, v.sharedBytes);
+        CUDA_CHECK(cudaGetLastError());
+        CUDA_CHECK(cudaEventRecord(stop));
+        CUDA_CHECK(cudaEventSynchronize(stop));
+
+        float ms = 0.0f;
+        CUDA_CHECK(cudaEventElapsedTime(&ms, start, stop));
+        times.push_back(ms);
+    }
+
+    sort(times.begin(), times.end());
+    r.medianMs = times[times.size() / 2];
+    r.averageMs = 0.0;
+    for (float ms : times) {
+        r.averageMs += ms;
+    }
+    r.averageMs /= static_cast<double>(times.size());
+
+    CUDA_CHECK(cudaEventRecord(start));
+    CUDA_CHECK(cudaMemcpy(h_C.data(), d_C, bytes, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaEventRecord(stop));
+    CUDA_CHECK(cudaEventSynchronize(stop));
+
+    float d2h = 0.0f;
+    CUDA_CHECK(cudaEventElapsedTime(&d2h, start, stop));
+    r.d2hMs = d2h;
+
+    r.maxError = 0.0;
+    r.correct = true;
+    for (size_t i = 0; i < h_C.size(); ++i) {
+        const double error = fabs(h_C[i] - h_reference[i]);
+        r.maxError = max(r.maxError, error);
+        if (error > ERROR_TOLERANCE) {
+            r.correct = false;
+        }
+    }
+
+    r.c0 = h_C[0];
+    const double operations = 2.0 * static_cast<double>(N)
+                            * static_cast<double>(N)
+                            * static_cast<double>(N);
+    r.gflops = (r.medianMs > 0.0)
+             ? operations / (r.medianMs * 1.0e6)
+             : 0.0;
+    r.supported = true;
+    return r;
+}
