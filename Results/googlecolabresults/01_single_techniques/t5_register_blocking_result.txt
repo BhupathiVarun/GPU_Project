@@ -1,0 +1,367 @@
+-rwxr-xr-x 1 root root 1040120 Nov 26 12:47 t5_register_blocking
+################ N = 256 ################
+GPU : Tesla T4 (40 SMs, CC 7.5)
+
+======= REGISTER BLOCKING: 1 x 1 (reference, no register blocking) =======
+Matrix size             : 256 x 256
+Outputs per thread      : 1 x 1 = 1
+Output tile per block   : 8 x 32
+Block shape             : 32 x 8 = 256 threads
+Blocks in grid          : 8 x 32 = 256
+Global loads per FMA    : 2 (theory)
+
+--- Register Usage ---
+Registers per thread    : 64
+Local memory (spills)   : 0 bytes
+Active blocks per SM    : 4
+
+--- Timing Results ---
+H2D transfer time       : 0.403936 ms
+D2H transfer time       : 0.199232 ms
+Kernel median time      : 0.26624 ms
+Kernel average time     : 0.266688 ms
+
+--- Performance ---
+GPU performance         : 126.031 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8743
+Maximum absolute error  : 1.55431e-15
+Correctness             : PASSED
+
+======= REGISTER BLOCKING: 2 x 2 (4 outputs per thread) =======
+Matrix size             : 256 x 256
+Outputs per thread      : 2 x 2 = 4
+Output tile per block   : 16 x 64
+Block shape             : 32 x 8 = 256 threads
+Blocks in grid          : 4 x 16 = 64
+Global loads per FMA    : 1 (theory)
+
+--- Register Usage ---
+Registers per thread    : 64
+Local memory (spills)   : 0 bytes
+Active blocks per SM    : 4
+
+--- Timing Results ---
+H2D transfer time       : 0.403936 ms
+D2H transfer time       : 0.154112 ms
+Kernel median time      : 0.299328 ms
+Kernel average time     : 0.29975 ms
+
+--- Performance ---
+GPU performance         : 112.099 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8743
+Maximum absolute error  : 1.55431e-15
+Correctness             : PASSED
+
+======= REGISTER BLOCKING: 4 x 4 (16 outputs per thread) =======
+Matrix size             : 256 x 256
+Outputs per thread      : 4 x 4 = 16
+Output tile per block   : 32 x 128
+Block shape             : 32 x 8 = 256 threads
+Blocks in grid          : 2 x 8 = 16
+Global loads per FMA    : 0.5 (theory)
+
+--- Register Usage ---
+Registers per thread    : 76
+Local memory (spills)   : 0 bytes
+Active blocks per SM    : 3
+
+--- Timing Results ---
+H2D transfer time       : 0.403936 ms
+D2H transfer time       : 0.141952 ms
+Kernel median time      : 0.591072 ms
+Kernel average time     : 0.591392 ms
+
+--- Performance ---
+GPU performance         : 56.7688 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8743
+Maximum absolute error  : 1.55431e-15
+Correctness             : PASSED
+
+======= REGISTER BLOCKING: 8 x 8 (64 outputs per thread, register heavy) =======
+Matrix size             : 256 x 256
+Outputs per thread      : 8 x 8 = 64
+Output tile per block   : 64 x 256
+Block shape             : 32 x 8 = 256 threads
+Blocks in grid          : 1 x 4 = 4
+Global loads per FMA    : 0.25 (theory)
+
+--- Register Usage ---
+Registers per thread    : 186
+Local memory (spills)   : 0 bytes
+Active blocks per SM    : 1
+
+--- Timing Results ---
+H2D transfer time       : 0.403936 ms
+D2H transfer time       : 0.148352 ms
+Kernel median time      : 2.3119 ms
+Kernel average time     : 2.31199 ms
+
+--- Performance ---
+GPU performance         : 14.5138 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8743
+Maximum absolute error  : 1.55431e-15
+Correctness             : PASSED
+
+======= REGISTER BLOCKING SUMMARY (N = 256) =======
+Variant                                         Median (ms)    GFLOP/s    vs 1x1   Regs   Spill
+1 x 1 (reference, no register blocking)            0.266240    126.031     1.00x     64      0B
+2 x 2 (4 outputs per thread)                       0.299328    112.099     0.89x     64      0B
+4 x 4 (16 outputs per thread)                      0.591072     56.769     0.45x     76      0B
+8 x 8 (64 outputs per thread, register heavy)      2.311904     14.514     0.12x    186      0B
+
+RESULT,t5_regblock_1x1,256,0.266240,0.266688,126.031,1.554e-15
+RESULT,t5_regblock_2x2,256,0.299328,0.299750,112.099,1.554e-15
+RESULT,t5_regblock_4x4,256,0.591072,0.591392,56.769,1.554e-15
+RESULT,t5_regblock_8x8,256,2.311904,2.311987,14.514,1.554e-15
+################ N = 512 ################
+GPU : Tesla T4 (40 SMs, CC 7.5)
+
+======= REGISTER BLOCKING: 1 x 1 (reference, no register blocking) =======
+Matrix size             : 512 x 512
+Outputs per thread      : 1 x 1 = 1
+Output tile per block   : 8 x 32
+Block shape             : 32 x 8 = 256 threads
+Blocks in grid          : 16 x 64 = 1024
+Global loads per FMA    : 2 (theory)
+
+--- Register Usage ---
+Registers per thread    : 64
+Local memory (spills)   : 0 bytes
+Active blocks per SM    : 4
+
+--- Timing Results ---
+H2D transfer time       : 1.17606 ms
+D2H transfer time       : 0.573536 ms
+Kernel median time      : 1.57027 ms
+Kernel average time     : 1.57009 ms
+
+--- Performance ---
+GPU performance         : 170.948 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8622
+Maximum absolute error  : 3.55271e-15
+Correctness             : PASSED
+
+======= REGISTER BLOCKING: 2 x 2 (4 outputs per thread) =======
+Matrix size             : 512 x 512
+Outputs per thread      : 2 x 2 = 4
+Output tile per block   : 16 x 64
+Block shape             : 32 x 8 = 256 threads
+Blocks in grid          : 8 x 32 = 256
+Global loads per FMA    : 1 (theory)
+
+--- Register Usage ---
+Registers per thread    : 64
+Local memory (spills)   : 0 bytes
+Active blocks per SM    : 4
+
+--- Timing Results ---
+H2D transfer time       : 1.17606 ms
+D2H transfer time       : 0.520704 ms
+Kernel median time      : 1.67808 ms
+Kernel average time     : 1.67834 ms
+
+--- Performance ---
+GPU performance         : 159.966 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8622
+Maximum absolute error  : 3.55271e-15
+Correctness             : PASSED
+
+======= REGISTER BLOCKING: 4 x 4 (16 outputs per thread) =======
+Matrix size             : 512 x 512
+Outputs per thread      : 4 x 4 = 16
+Output tile per block   : 32 x 128
+Block shape             : 32 x 8 = 256 threads
+Blocks in grid          : 4 x 16 = 64
+Global loads per FMA    : 0.5 (theory)
+
+--- Register Usage ---
+Registers per thread    : 76
+Local memory (spills)   : 0 bytes
+Active blocks per SM    : 3
+
+--- Timing Results ---
+H2D transfer time       : 1.17606 ms
+D2H transfer time       : 0.503776 ms
+Kernel median time      : 1.9063 ms
+Kernel average time     : 1.90712 ms
+
+--- Performance ---
+GPU performance         : 140.815 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8622
+Maximum absolute error  : 3.55271e-15
+Correctness             : PASSED
+
+======= REGISTER BLOCKING: 8 x 8 (64 outputs per thread, register heavy) =======
+Matrix size             : 512 x 512
+Outputs per thread      : 8 x 8 = 64
+Output tile per block   : 64 x 256
+Block shape             : 32 x 8 = 256 threads
+Blocks in grid          : 2 x 8 = 16
+Global loads per FMA    : 0.25 (theory)
+
+--- Register Usage ---
+Registers per thread    : 186
+Local memory (spills)   : 0 bytes
+Active blocks per SM    : 1
+
+--- Timing Results ---
+H2D transfer time       : 1.17606 ms
+D2H transfer time       : 0.48624 ms
+Kernel median time      : 3.91053 ms
+Kernel average time     : 3.87486 ms
+
+--- Performance ---
+GPU performance         : 68.6443 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.8622
+Maximum absolute error  : 3.55271e-15
+Correctness             : PASSED
+
+======= REGISTER BLOCKING SUMMARY (N = 512) =======
+Variant                                         Median (ms)    GFLOP/s    vs 1x1   Regs   Spill
+1 x 1 (reference, no register blocking)            1.570272    170.948     1.00x     64      0B
+2 x 2 (4 outputs per thread)                       1.678080    159.966     0.94x     64      0B
+4 x 4 (16 outputs per thread)                      1.906304    140.815     0.82x     76      0B
+8 x 8 (64 outputs per thread, register heavy)      3.910528     68.644     0.40x    186      0B
+
+RESULT,t5_regblock_1x1,512,1.570272,1.570093,170.948,3.553e-15
+RESULT,t5_regblock_2x2,512,1.678080,1.678342,159.966,3.553e-15
+RESULT,t5_regblock_4x4,512,1.906304,1.907117,140.815,3.553e-15
+RESULT,t5_regblock_8x8,512,3.910528,3.874861,68.644,3.553e-15
+################ N = 1024 ################
+GPU : Tesla T4 (40 SMs, CC 7.5)
+
+======= REGISTER BLOCKING: 1 x 1 (reference, no register blocking) =======
+Matrix size             : 1024 x 1024
+Outputs per thread      : 1 x 1 = 1
+Output tile per block   : 8 x 32
+Block shape             : 32 x 8 = 256 threads
+Blocks in grid          : 32 x 128 = 4096
+Global loads per FMA    : 2 (theory)
+
+--- Register Usage ---
+Registers per thread    : 64
+Local memory (spills)   : 0 bytes
+Active blocks per SM    : 4
+
+--- Timing Results ---
+H2D transfer time       : 4.24045 ms
+D2H transfer time       : 2.09133 ms
+Kernel median time      : 18.2416 ms
+Kernel average time     : 18.2418 ms
+
+--- Performance ---
+GPU performance         : 117.725 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.6119
+Maximum absolute error  : 7.10543e-15
+Correctness             : PASSED
+
+======= REGISTER BLOCKING: 2 x 2 (4 outputs per thread) =======
+Matrix size             : 1024 x 1024
+Outputs per thread      : 2 x 2 = 4
+Output tile per block   : 16 x 64
+Block shape             : 32 x 8 = 256 threads
+Blocks in grid          : 16 x 64 = 1024
+Global loads per FMA    : 1 (theory)
+
+--- Register Usage ---
+Registers per thread    : 64
+Local memory (spills)   : 0 bytes
+Active blocks per SM    : 4
+
+--- Timing Results ---
+H2D transfer time       : 4.24045 ms
+D2H transfer time       : 2.18093 ms
+Kernel median time      : 9.27139 ms
+Kernel average time     : 12.7864 ms
+
+--- Performance ---
+GPU performance         : 231.625 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.6119
+Maximum absolute error  : 7.10543e-15
+Correctness             : PASSED
+
+======= REGISTER BLOCKING: 4 x 4 (16 outputs per thread) =======
+Matrix size             : 1024 x 1024
+Outputs per thread      : 4 x 4 = 16
+Output tile per block   : 32 x 128
+Block shape             : 32 x 8 = 256 threads
+Blocks in grid          : 8 x 32 = 256
+Global loads per FMA    : 0.5 (theory)
+
+--- Register Usage ---
+Registers per thread    : 76
+Local memory (spills)   : 0 bytes
+Active blocks per SM    : 3
+
+--- Timing Results ---
+H2D transfer time       : 4.24045 ms
+D2H transfer time       : 2.08925 ms
+Kernel median time      : 9.64035 ms
+Kernel average time     : 9.64186 ms
+
+--- Performance ---
+GPU performance         : 222.76 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.6119
+Maximum absolute error  : 7.10543e-15
+Correctness             : PASSED
+
+======= REGISTER BLOCKING: 8 x 8 (64 outputs per thread, register heavy) =======
+Matrix size             : 1024 x 1024
+Outputs per thread      : 8 x 8 = 64
+Output tile per block   : 64 x 256
+Block shape             : 32 x 8 = 256 threads
+Blocks in grid          : 4 x 16 = 64
+Global loads per FMA    : 0.25 (theory)
+
+--- Register Usage ---
+Registers per thread    : 186
+Local memory (spills)   : 0 bytes
+Active blocks per SM    : 1
+
+--- Timing Results ---
+H2D transfer time       : 4.24045 ms
+D2H transfer time       : 2.1863 ms
+Kernel median time      : 10.7729 ms
+Kernel average time     : 10.8003 ms
+
+--- Performance ---
+GPU performance         : 199.341 GFLOP/s
+
+--- Correctness ---
+C[0]                    : -0.6119
+Maximum absolute error  : 7.10543e-15
+Correctness             : PASSED
+
+======= REGISTER BLOCKING SUMMARY (N = 1024) =======
+Variant                                         Median (ms)    GFLOP/s    vs 1x1   Regs   Spill
+1 x 1 (reference, no register blocking)           18.241568    117.725     1.00x     64      0B
+2 x 2 (4 outputs per thread)                       9.271392    231.625     1.97x     64      0B
+4 x 4 (16 outputs per thread)                      9.640352    222.760     1.89x     76      0B
+8 x 8 (64 outputs per thread, register heavy)     10.772896    199.341     1.69x    186      0B
+
+RESULT,t5_regblock_1x1,1024,18.241568,18.241805,117.725,7.105e-15
+RESULT,t5_regblock_2x2,1024,9.271392,12.786432,231.625,7.105e-15
+RESULT,t5_regblock_4x4,1024,9.640352,9.641856,222.760,7.105e-15
+RESULT,t5_regblock_8x8,1024,10.772896,10.800307,199.341,7.105e-15
