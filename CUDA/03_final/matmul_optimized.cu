@@ -78,8 +78,7 @@ static_assert((FINAL_RN == 1 || FINAL_RN == 2 || FINAL_RN == 4 || FINAL_RN == 8)
         }                                                                    \
     } while (0)
 
-
-template <int BM, int BN, int BK, int RM, int RN>
+    template <int BM, int BN, int BK, int RM, int RN>
 __global__ void __launch_bounds__(BM * BN)
 matmulFinalFP64(const double *__restrict__ A,
                 const double *__restrict__ B,
@@ -304,7 +303,6 @@ matmulFinalWMMA(const __half *__restrict__ A,
     }
 }
 
-
 struct Timing {
     double medianMs = 0.0;
     double averageMs = 0.0;
@@ -436,7 +434,6 @@ static double measureH2D(CopyInputs copyInputs,
     return ms;
 }
 
-
 int main(int argc, char **argv)
 {
     int N = 256;
@@ -506,10 +503,7 @@ int main(int argc, char **argv)
         CUDA_CHECK(cudaMemcpy(d_B, h_B.data(), doubleBytes, cudaMemcpyHostToDevice));
     }, start, stop);
     cout << "FP64 H2D transfer time      : " << h2dMs << " ms\n";
-
-    // -------------------------------------------------------------------------
-    // 1) FINAL CUSTOM FP64 KERNEL: coalescing + shared tiling + register block.
-    // -------------------------------------------------------------------------
+    // final
     const size_t outM = static_cast<size_t>(FINAL_BM) * FINAL_RM;
     const size_t outN = static_cast<size_t>(FINAL_BN) * FINAL_RN;
     const size_t asElements = outM * (static_cast<size_t>(FINAL_BK) + 1);
@@ -585,11 +579,7 @@ int main(int argc, char **argv)
              << finalFp64Timing.medianMs << "," << finalFp64Timing.averageMs << ","
              << finalFp64Timing.gflops << "," << finalFp64Error.maxAbs << "\n";
     }
-
-    // -------------------------------------------------------------------------
-    // 2) cuBLAS DGEMM: FP64 reference at the same arithmetic precision.
-    // Row-major C=A*B is represented as column-major C^T=B^T*A^T, so B then A.
-    // -------------------------------------------------------------------------
+    // cublas 
     cout << "\n======= cuBLAS DGEMM (FP64 REFERENCE) =======\n";
     cublasHandle_t handle;
     CUBLAS_CHECK(cublasCreate(&handle));
@@ -618,11 +608,7 @@ int main(int argc, char **argv)
          << dgemmTiming.medianMs << "," << dgemmTiming.averageMs << ","
          << dgemmTiming.gflops << "," << dgemmError.maxAbs << "\n";
 
-    // -------------------------------------------------------------------------
-    // 3) Tensor Core path: WMMA tiled kernel and cuBLAS GEMMEx.
-    // Inputs are converted to FP16; accumulation and outputs are FP32.
-    // Pad N to a multiple of 64 so every 64x64 WMMA block is fully in bounds.
-    // -------------------------------------------------------------------------
+    // tensor core
     cout << "\n======= TENSOR CORE PATH (FP16 INPUT / FP32 ACCUMULATION) =======\n";
     bool tensorRan = false;
     if (prop.major < 7) {
@@ -725,9 +711,6 @@ int main(int argc, char **argv)
         CUDA_CHECK(cudaFree(d_Cf));
     }
 
-    // -------------------------------------------------------------------------
-    // Summary and cleanup.
-    // -------------------------------------------------------------------------
     cout << "\n======= FINAL SUMMARY =======\n";
     cout << "N                           : " << N << "\n";
     if (fp64FinalRan) {
