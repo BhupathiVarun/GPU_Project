@@ -33,7 +33,6 @@ static_assert(C2_TILE_SIZE * C2_TILE_SIZE <= 1024,
         }                                                                  \
     } while (0)
 
-
 template <int RM, int RN>
 __global__ void __launch_bounds__(C2_TILE_SIZE * C2_TILE_SIZE)
 matmulTiledRegBlocked(
@@ -263,7 +262,6 @@ static dim3 gridFor(int N, int rm, int rn)
                 (N + outM - 1) / outM);
 }
 
-
 static Result runVariant(
     const Variant &v,
     const double *d_A,
@@ -374,7 +372,6 @@ static Result runVariant(
     r.supported = true;
     return r;
 }
-
 
 static void printVariant(const Variant &v, int N, double h2dMs,
                          const Result &r)
