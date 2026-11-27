@@ -39,3 +39,26 @@ __global__ void matrixMultiply(
         C[row * N + col] = sum;
     }
 }
+
+// CPU reference implementation
+void cpuMatrixMultiply(
+    const vector<double>& A,
+    const vector<double>& B,
+    vector<double>& C,
+    int N)
+{
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            double sum = 0.0;
+
+            for (int k = 0; k < N; k++)
+            {
+                sum += A[i * N + k] * B[k * N + j];
+            }
+
+            C[i * N + j] = sum;
+        }
+    }
+}
