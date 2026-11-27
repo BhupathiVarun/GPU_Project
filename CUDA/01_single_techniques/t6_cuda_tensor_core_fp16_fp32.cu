@@ -31,7 +31,6 @@ do {                                                          \
     }                                                         \
 } while (0)
 
-
 double median(std::vector<double> values)
 {
     std::sort(values.begin(), values.end());
@@ -43,8 +42,6 @@ double median(std::vector<double> values)
 
     return values[n / 2];
 }
-
-
 
 int main(int argc, char* argv[])
 {
@@ -248,4 +245,63 @@ int main(int argc, char* argv[])
     double gflops =
         operations / (median_ms * 1.0e6);
 
+    // Display results
+    std::cout << std::fixed << std::setprecision(8);
+
+    std::cout << "\n======= TENSOR CORE MATRIX MULTIPLICATION =======\n";
+
+    std::cout << "GPU input precision     : FP16\n";
+    std::cout << "Accumulation precision  : FP32\n";
+    std::cout << "Output precision        : FP32\n";
+
+    std::cout << "Matrix size             : "
+              << N << " x " << N << "\n";
+
+    std::cout << "\n--- Timing Results ---\n";
+
+    std::cout << "H2D transfer time       : "
+              << h2d_ms << " ms\n";
+
+    std::cout << "D2H transfer time       : "
+              << d2h_ms << " ms\n";
+
+    std::cout << "Kernel median time      : "
+              << median_ms << " ms\n";
+
+    std::cout << "Kernel average time     : "
+              << average_ms << " ms\n";
+
+    std::cout << "\n--- Performance ---\n";
+
+    std::cout << "GPU performance         : "
+              << gflops << " GFLOP/s\n";
+
+    std::cout << "\n--- Accuracy ---\n";
+
+    std::cout << "C[0]                    : "
+              << C_float[0] << "\n";
+
+    std::cout << "Maximum absolute error  : "
+              << max_abs_error << "\n";
+
+    std::cout << "Root mean square error  : "
+              << rmse << "\n";
+
+    std::cout << "Allowed error           : "
+              << tolerance << "\n";
+
+    std::cout << "Correctness             : "
+              << (passed ? "PASSED" : "FAILED") << "\n";
+
+    // Cleanup
+    CUDA_CHECK(cudaEventDestroy(start));
+    CUDA_CHECK(cudaEventDestroy(stop));
+
+    CUBLAS_CHECK(cublasDestroy(handle));
+
+    CUDA_CHECK(cudaFree(d_A));
+    CUDA_CHECK(cudaFree(d_B));
+    CUDA_CHECK(cudaFree(d_C));
+
+    return passed ? EXIT_SUCCESS : EXIT_FAILURE;
 }
