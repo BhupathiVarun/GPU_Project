@@ -196,3 +196,69 @@ static cudaError_t setVariantDynamicSmem(int bytes)
         cudaFuncAttributeMaxDynamicSharedMemorySize,
         bytes);
 }
+
+static void cpuMatrixMultiply(
+    const vector<double> &A,
+    const vector<double> &B,
+    vector<double> &C,
+    int N)
+{
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            double sum = 0.0;
+            for (int k = 0; k < N; ++k) {
+                sum += A[static_cast<size_t>(i) * N + k]
+                     * B[static_cast<size_t>(k) * N + j];
+            }
+            C[static_cast<size_t>(i) * N + j] = sum;
+        }
+    }
+}
+
+struct Variant {
+    const char *tag;
+    const char *name;
+    int rm;
+    int rn;
+    LaunchFn launch;
+    AttributesFn getAttributes;
+    OccupancyFn getOccupancy;
+    SetDynamicSmemFn setDynamicSmem;
+    dim3 block;
+    dim3 grid;
+    size_t sharedBytes;
+};
+
+struct Result {
+    bool supported;
+    bool correct;
+    double medianMs;
+    double averageMs;
+    double d2hMs;
+    double gflops;
+    double maxError;
+    double c0;
+    int registersPerThread;
+    size_t localBytesPerThread;
+    size_t sharedBytes;
+    int activeBlocksPerSM;
+};
+
+static size_t sharedBytesFor(int rm, int rn)
+{
+    const size_t S = C2_TILE_SIZE;
+    const size_t bk = C2_TILE_SIZE;
+    const size_t outM = S * static_cast<size_t>(rm);
+    const size_t outN = S * static_cast<size_t>(rn);
+    const size_t aBytes = outM * (bk + 1) * sizeof(double);
+    const size_t bBytes = bk * (outN + 1) * sizeof(double);
+    return aBytes + bBytes;
+}
+
+static dim3 gridFor(int N, int rm, int rn)
+{
+    const int outM = C2_TILE_SIZE * rm;
+    const int outN = C2_TILE_SIZE * rn;
+    return dim3((N + outN - 1) / outN,
+                (N + outM - 1) / outM);
+}
