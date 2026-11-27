@@ -1,0 +1,447 @@
+######## C2: N=256 ########
+GPU                         : Tesla T4 (40 SMs, CC 7.5)
+Default shared memory/block: 49152 bytes
+Maximum shared memory/block: 65536 bytes
+C2 selected T4 tile         : 16 x 16; BK=16
+Timed runs per variant      : 5 (after one warm-up)
+
+Computing FP64 CPU reference...
+
+======= C2 TILING + REGISTER BLOCKING: 1x1 (tiled reference; no register blocking) =======
+Matrix size                 : 256 x 256
+T4-selected base tile       : 16 x 16
+K tile depth (BK)           : 16
+Register tile/thread       : 1 x 1 = 1 outputs
+Output tile/block           : 16 x 16
+Threads per block           : 16 x 16 = 256
+Grid                        : 16 x 16 = 256 blocks
+Shared-memory tile loads/FMA: 0.125000 (theoretical global loads)
+Shared loads/FMA            : 2.000000 (theoretical shared loads)
+
+--- GPU Resource Usage ---
+Registers per thread        : 62
+Local memory per thread     : 0 bytes
+Shared memory per block     : 4352 bytes
+Active blocks per SM        : 4
+
+--- Timing Results ---
+H2D transfer time           : 1.017664 ms
+D2H transfer time           : 0.166176 ms
+Kernel median time          : 0.315808 ms
+Kernel average time         : 0.315859 ms
+
+--- Performance ---
+GPU performance             : 106.249469 GFLOP/s
+
+--- Correctness ---
+C[0]                        : -0.874300
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+======= C2 TILING + REGISTER BLOCKING: 2x2 (4 outputs per thread) =======
+Matrix size                 : 256 x 256
+T4-selected base tile       : 16 x 16
+K tile depth (BK)           : 16
+Register tile/thread       : 2 x 2 = 4 outputs
+Output tile/block           : 32 x 32
+Threads per block           : 16 x 16 = 256
+Grid                        : 8 x 8 = 64 blocks
+Shared-memory tile loads/FMA: 0.062500 (theoretical global loads)
+Shared loads/FMA            : 1.000000 (theoretical shared loads)
+
+--- GPU Resource Usage ---
+Registers per thread        : 60
+Local memory per thread     : 0 bytes
+Shared memory per block     : 8576 bytes
+Active blocks per SM        : 4
+
+--- Timing Results ---
+H2D transfer time           : 1.017664 ms
+D2H transfer time           : 0.154272 ms
+Kernel median time          : 0.375072 ms
+Kernel average time         : 0.376256 ms
+
+--- Performance ---
+GPU performance             : 89.461308 GFLOP/s
+
+--- Correctness ---
+C[0]                        : -0.874300
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+======= C2 TILING + REGISTER BLOCKING: 4x4 (16 outputs per thread) =======
+Matrix size                 : 256 x 256
+T4-selected base tile       : 16 x 16
+K tile depth (BK)           : 16
+Register tile/thread       : 4 x 4 = 16 outputs
+Output tile/block           : 64 x 64
+Threads per block           : 16 x 16 = 256
+Grid                        : 4 x 4 = 16 blocks
+Shared-memory tile loads/FMA: 0.031250 (theoretical global loads)
+Shared loads/FMA            : 0.500000 (theoretical shared loads)
+
+--- GPU Resource Usage ---
+Registers per thread        : 80
+Local memory per thread     : 0 bytes
+Shared memory per block     : 17024 bytes
+Active blocks per SM        : 3
+
+--- Timing Results ---
+H2D transfer time           : 1.017664 ms
+D2H transfer time           : 0.131488 ms
+Kernel median time          : 0.714880 ms
+Kernel average time         : 0.715059 ms
+
+--- Performance ---
+GPU performance             : 46.937154 GFLOP/s
+
+--- Correctness ---
+C[0]                        : -0.874300
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+======= C2 TILING + REGISTER BLOCKING: 8x8 (64 outputs per thread; register-heavy) =======
+Matrix size                 : 256 x 256
+T4-selected base tile       : 16 x 16
+K tile depth (BK)           : 16
+Register tile/thread       : 8 x 8 = 64 outputs
+Output tile/block           : 128 x 128
+Threads per block           : 16 x 16 = 256
+Grid                        : 2 x 2 = 4 blocks
+Shared-memory tile loads/FMA: 0.015625 (theoretical global loads)
+Shared loads/FMA            : 0.250000 (theoretical shared loads)
+
+--- GPU Resource Usage ---
+Registers per thread        : 170
+Local memory per thread     : 0 bytes
+Shared memory per block     : 33920 bytes
+Active blocks per SM        : 1
+
+--- Timing Results ---
+H2D transfer time           : 1.017664 ms
+D2H transfer time           : 0.148800 ms
+Kernel median time          : 2.775616 ms
+Kernel average time         : 2.775942 ms
+
+--- Performance ---
+GPU performance             : 12.089004 GFLOP/s
+
+--- Correctness ---
+C[0]                        : -0.874300
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+======= C2 TILING + REGISTER BLOCKING SUMMARY (N = 256, T4 tile = 16x16) =======
+Configuration                               Median (ms)    GFLOP/s    vs 1x1   Regs   Smem B  Blk/SM
+1x1 (tiled reference; no register blocking)     0.315808    106.249     1.00x     62     4352       4  <== best
+2x2 (4 outputs per thread)                     0.375072     89.461     0.84x     60     8576       4
+4x4 (16 outputs per thread)                    0.714880     46.937     0.44x     80    17024       3
+8x8 (64 outputs per thread; register-heavy)     2.775616     12.089     0.11x    170    33920       1
+
+Best C2 configuration for N = 256: 1x1 (tiled reference; no register blocking)
+Median time                 : 0.315808 ms
+Performance                 : 106.249469 GFLOP/s
+Speedup vs C2 tiled 1x1     : 1.000000x
+
+RESULT,c2_s16_rm1x1,256,0.315808,0.315859,106.249,1.554e-15
+RESULT,c2_s16_rm2x2,256,0.375072,0.376256,89.461,1.554e-15
+RESULT,c2_s16_rm4x4,256,0.714880,0.715059,46.937,1.554e-15
+RESULT,c2_s16_rm8x8,256,2.775616,2.775942,12.089,1.554e-15
+######## C2: N=512 ########
+GPU                         : Tesla T4 (40 SMs, CC 7.5)
+Default shared memory/block: 49152 bytes
+Maximum shared memory/block: 65536 bytes
+C2 selected T4 tile         : 16 x 16; BK=16
+Timed runs per variant      : 5 (after one warm-up)
+
+Computing FP64 CPU reference...
+
+======= C2 TILING + REGISTER BLOCKING: 1x1 (tiled reference; no register blocking) =======
+Matrix size                 : 512 x 512
+T4-selected base tile       : 16 x 16
+K tile depth (BK)           : 16
+Register tile/thread       : 1 x 1 = 1 outputs
+Output tile/block           : 16 x 16
+Threads per block           : 16 x 16 = 256
+Grid                        : 32 x 32 = 1024 blocks
+Shared-memory tile loads/FMA: 0.125000 (theoretical global loads)
+Shared loads/FMA            : 2.000000 (theoretical shared loads)
+
+--- GPU Resource Usage ---
+Registers per thread        : 62
+Local memory per thread     : 0 bytes
+Shared memory per block     : 4352 bytes
+Active blocks per SM        : 4
+
+--- Timing Results ---
+H2D transfer time           : 1.214272 ms
+D2H transfer time           : 0.581024 ms
+Kernel median time          : 1.780512 ms
+Kernel average time         : 1.781395 ms
+
+--- Performance ---
+GPU performance             : 150.763072 GFLOP/s
+
+--- Correctness ---
+C[0]                        : -0.862200
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+======= C2 TILING + REGISTER BLOCKING: 2x2 (4 outputs per thread) =======
+Matrix size                 : 512 x 512
+T4-selected base tile       : 16 x 16
+K tile depth (BK)           : 16
+Register tile/thread       : 2 x 2 = 4 outputs
+Output tile/block           : 32 x 32
+Threads per block           : 16 x 16 = 256
+Grid                        : 16 x 16 = 256 blocks
+Shared-memory tile loads/FMA: 0.062500 (theoretical global loads)
+Shared loads/FMA            : 1.000000 (theoretical shared loads)
+
+--- GPU Resource Usage ---
+Registers per thread        : 60
+Local memory per thread     : 0 bytes
+Shared memory per block     : 8576 bytes
+Active blocks per SM        : 4
+
+--- Timing Results ---
+H2D transfer time           : 1.214272 ms
+D2H transfer time           : 0.546400 ms
+Kernel median time          : 1.929216 ms
+Kernel average time         : 1.933254 ms
+
+--- Performance ---
+GPU performance             : 139.142249 GFLOP/s
+
+--- Correctness ---
+C[0]                        : -0.862200
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+======= C2 TILING + REGISTER BLOCKING: 4x4 (16 outputs per thread) =======
+Matrix size                 : 512 x 512
+T4-selected base tile       : 16 x 16
+K tile depth (BK)           : 16
+Register tile/thread       : 4 x 4 = 16 outputs
+Output tile/block           : 64 x 64
+Threads per block           : 16 x 16 = 256
+Grid                        : 8 x 8 = 64 blocks
+Shared-memory tile loads/FMA: 0.031250 (theoretical global loads)
+Shared loads/FMA            : 0.500000 (theoretical shared loads)
+
+--- GPU Resource Usage ---
+Registers per thread        : 80
+Local memory per thread     : 0 bytes
+Shared memory per block     : 17024 bytes
+Active blocks per SM        : 3
+
+--- Timing Results ---
+H2D transfer time           : 1.214272 ms
+D2H transfer time           : 0.511776 ms
+Kernel median time          : 2.194368 ms
+Kernel average time         : 2.194592 ms
+
+--- Performance ---
+GPU performance             : 122.329286 GFLOP/s
+
+--- Correctness ---
+C[0]                        : -0.862200
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+======= C2 TILING + REGISTER BLOCKING: 8x8 (64 outputs per thread; register-heavy) =======
+Matrix size                 : 512 x 512
+T4-selected base tile       : 16 x 16
+K tile depth (BK)           : 16
+Register tile/thread       : 8 x 8 = 64 outputs
+Output tile/block           : 128 x 128
+Threads per block           : 16 x 16 = 256
+Grid                        : 4 x 4 = 16 blocks
+Shared-memory tile loads/FMA: 0.015625 (theoretical global loads)
+Shared loads/FMA            : 0.250000 (theoretical shared loads)
+
+--- GPU Resource Usage ---
+Registers per thread        : 170
+Local memory per thread     : 0 bytes
+Shared memory per block     : 33920 bytes
+Active blocks per SM        : 1
+
+--- Timing Results ---
+H2D transfer time           : 1.214272 ms
+D2H transfer time           : 0.544640 ms
+Kernel median time          : 4.419840 ms
+Kernel average time         : 4.420582 ms
+
+--- Performance ---
+GPU performance             : 60.734204 GFLOP/s
+
+--- Correctness ---
+C[0]                        : -0.862200
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+======= C2 TILING + REGISTER BLOCKING SUMMARY (N = 512, T4 tile = 16x16) =======
+Configuration                               Median (ms)    GFLOP/s    vs 1x1   Regs   Smem B  Blk/SM
+1x1 (tiled reference; no register blocking)     1.780512    150.763     1.00x     62     4352       4  <== best
+2x2 (4 outputs per thread)                     1.929216    139.142     0.92x     60     8576       4
+4x4 (16 outputs per thread)                    2.194368    122.329     0.81x     80    17024       3
+8x8 (64 outputs per thread; register-heavy)     4.419840     60.734     0.40x    170    33920       1
+
+Best C2 configuration for N = 512: 1x1 (tiled reference; no register blocking)
+Median time                 : 1.780512 ms
+Performance                 : 150.763072 GFLOP/s
+Speedup vs C2 tiled 1x1     : 1.000000x
+
+RESULT,c2_s16_rm1x1,512,1.780512,1.781395,150.763,3.553e-15
+RESULT,c2_s16_rm2x2,512,1.929216,1.933254,139.142,3.553e-15
+RESULT,c2_s16_rm4x4,512,2.194368,2.194592,122.329,3.553e-15
+RESULT,c2_s16_rm8x8,512,4.419840,4.420582,60.734,3.553e-15
+######## C2: N=1024 ########
+GPU                         : Tesla T4 (40 SMs, CC 7.5)
+Default shared memory/block: 49152 bytes
+Maximum shared memory/block: 65536 bytes
+C2 selected T4 tile         : 16 x 16; BK=16
+Timed runs per variant      : 5 (after one warm-up)
+
+Computing FP64 CPU reference...
+
+======= C2 TILING + REGISTER BLOCKING: 1x1 (tiled reference; no register blocking) =======
+Matrix size                 : 1024 x 1024
+T4-selected base tile       : 16 x 16
+K tile depth (BK)           : 16
+Register tile/thread       : 1 x 1 = 1 outputs
+Output tile/block           : 16 x 16
+Threads per block           : 16 x 16 = 256
+Grid                        : 64 x 64 = 4096 blocks
+Shared-memory tile loads/FMA: 0.125000 (theoretical global loads)
+Shared loads/FMA            : 2.000000 (theoretical shared loads)
+
+--- GPU Resource Usage ---
+Registers per thread        : 62
+Local memory per thread     : 0 bytes
+Shared memory per block     : 4352 bytes
+Active blocks per SM        : 4
+
+--- Timing Results ---
+H2D transfer time           : 4.013504 ms
+D2H transfer time           : 2.290976 ms
+Kernel median time          : 23.021696 ms
+Kernel average time         : 23.251258 ms
+
+--- Performance ---
+GPU performance             : 93.280862 GFLOP/s
+
+--- Correctness ---
+C[0]                        : -0.611900
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+======= C2 TILING + REGISTER BLOCKING: 2x2 (4 outputs per thread) =======
+Matrix size                 : 1024 x 1024
+T4-selected base tile       : 16 x 16
+K tile depth (BK)           : 16
+Register tile/thread       : 2 x 2 = 4 outputs
+Output tile/block           : 32 x 32
+Threads per block           : 16 x 16 = 256
+Grid                        : 32 x 32 = 1024 blocks
+Shared-memory tile loads/FMA: 0.062500 (theoretical global loads)
+Shared loads/FMA            : 1.000000 (theoretical shared loads)
+
+--- GPU Resource Usage ---
+Registers per thread        : 60
+Local memory per thread     : 0 bytes
+Shared memory per block     : 8576 bytes
+Active blocks per SM        : 4
+
+--- Timing Results ---
+H2D transfer time           : 4.013504 ms
+D2H transfer time           : 2.021888 ms
+Kernel median time          : 23.148352 ms
+Kernel average time         : 21.067559 ms
+
+--- Performance ---
+GPU performance             : 92.770478 GFLOP/s
+
+--- Correctness ---
+C[0]                        : -0.611900
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+======= C2 TILING + REGISTER BLOCKING: 4x4 (16 outputs per thread) =======
+Matrix size                 : 1024 x 1024
+T4-selected base tile       : 16 x 16
+K tile depth (BK)           : 16
+Register tile/thread       : 4 x 4 = 16 outputs
+Output tile/block           : 64 x 64
+Threads per block           : 16 x 16 = 256
+Grid                        : 16 x 16 = 256 blocks
+Shared-memory tile loads/FMA: 0.031250 (theoretical global loads)
+Shared loads/FMA            : 0.500000 (theoretical shared loads)
+
+--- GPU Resource Usage ---
+Registers per thread        : 80
+Local memory per thread     : 0 bytes
+Shared memory per block     : 17024 bytes
+Active blocks per SM        : 3
+
+--- Timing Results ---
+H2D transfer time           : 4.013504 ms
+D2H transfer time           : 2.155968 ms
+Kernel median time          : 10.514048 ms
+Kernel average time         : 10.511091 ms
+
+--- Performance ---
+GPU performance             : 204.248994 GFLOP/s
+
+--- Correctness ---
+C[0]                        : -0.611900
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+======= C2 TILING + REGISTER BLOCKING: 8x8 (64 outputs per thread; register-heavy) =======
+Matrix size                 : 1024 x 1024
+T4-selected base tile       : 16 x 16
+K tile depth (BK)           : 16
+Register tile/thread       : 8 x 8 = 64 outputs
+Output tile/block           : 128 x 128
+Threads per block           : 16 x 16 = 256
+Grid                        : 8 x 8 = 64 blocks
+Shared-memory tile loads/FMA: 0.015625 (theoretical global loads)
+Shared loads/FMA            : 0.250000 (theoretical shared loads)
+
+--- GPU Resource Usage ---
+Registers per thread        : 170
+Local memory per thread     : 0 bytes
+Shared memory per block     : 33920 bytes
+Active blocks per SM        : 1
+
+--- Timing Results ---
+H2D transfer time           : 4.013504 ms
+D2H transfer time           : 1.959552 ms
+Kernel median time          : 12.219520 ms
+Kernel average time         : 12.231328 ms
+
+--- Performance ---
+GPU performance             : 175.742068 GFLOP/s
+
+--- Correctness ---
+C[0]                        : -0.611900
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+======= C2 TILING + REGISTER BLOCKING SUMMARY (N = 1024, T4 tile = 16x16) =======
+Configuration                               Median (ms)    GFLOP/s    vs 1x1   Regs   Smem B  Blk/SM
+1x1 (tiled reference; no register blocking)    23.021696     93.281     1.00x     62     4352       4
+2x2 (4 outputs per thread)                    23.148352     92.770     0.99x     60     8576       4
+4x4 (16 outputs per thread)                   10.514048    204.249     2.19x     80    17024       3  <== best
+8x8 (64 outputs per thread; register-heavy)    12.219520    175.742     1.88x    170    33920       1
+
+Best C2 configuration for N = 1024: 4x4 (16 outputs per thread)
+Median time                 : 10.514048 ms
+Performance                 : 204.248994 GFLOP/s
+Speedup vs C2 tiled 1x1     : 2.189613x
+
+RESULT,c2_s16_rm1x1,1024,23.021696,23.251258,93.281,7.105e-15
+RESULT,c2_s16_rm2x2,1024,23.148352,21.067559,92.770,7.105e-15
+RESULT,c2_s16_rm4x4,1024,10.514048,10.511091,204.249,7.105e-15
+RESULT,c2_s16_rm8x8,1024,12.219520,12.231328,175.742,7.105e-15
