@@ -1,0 +1,64 @@
+
+======= T3 MEMORY COALESCING EXPERIMENT =======
+Matrix size                 : 256 x 256
+Threads per block           : 32 x 8 = 256
+Measured runs per kernel    : 5 (median)
+
+COALESCED MAPPING
+Kernel median time          : 0.319872 ms
+Performance                 : 104.899562 GFLOP/s
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+DELIBERATELY STRIDED MAPPING
+Kernel median time          : 1.289504 ms
+Performance                 : 26.021192 GFLOP/s
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+Strided time / coalesced time: 4.031313x
+(A value above 1 means the coalesced mapping was faster.)
+
+
+
+======= T3 MEMORY COALESCING EXPERIMENT =======
+Matrix size                 : 512 x 512
+Threads per block           : 32 x 8 = 256
+Measured runs per kernel    : 5 (median)
+
+COALESCED MAPPING
+Kernel median time          : 1.748384 ms
+Performance                 : 153.533466 GFLOP/s
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+DELIBERATELY STRIDED MAPPING
+Kernel median time          : 7.171424 ms
+Performance                 : 37.431263 GFLOP/s
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+Strided time / coalesced time: 4.101744x
+(A value above 1 means the coalesced mapping was faster.)
+
+
+
+======= T3 MEMORY COALESCING EXPERIMENT =======
+Matrix size                 : 1024 x 1024
+Threads per block           : 32 x 8 = 256
+Measured runs per kernel    : 5 (median)
+
+COALESCED MAPPING
+Kernel median time          : 13.715552 ms
+Performance                 : 156.572889 GFLOP/s
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+DELIBERATELY STRIDED MAPPING
+Kernel median time          : 36.372478 ms
+Performance                 : 59.041444 GFLOP/s
+Maximum absolute error      : 0.000000
+Correctness                 : PASSED
+
+Strided time / coalesced time: 2.651915x
+(A value above 1 means the coalesced mapping was faster.)
