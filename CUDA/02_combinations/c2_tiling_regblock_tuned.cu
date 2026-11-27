@@ -374,3 +374,266 @@ static Result runVariant(
     r.supported = true;
     return r;
 }
+
+
+static void printVariant(const Variant &v, int N, double h2dMs,
+                         const Result &r)
+{
+    const double outM = static_cast<double>(C2_TILE_SIZE * v.rm);
+    const double outN = static_cast<double>(C2_TILE_SIZE * v.rn);
+    const double globalLoadsPerFma = 1.0 / outM + 1.0 / outN;
+    const double sharedLoadsPerFma =
+        static_cast<double>(v.rm + v.rn) /
+        static_cast<double>(v.rm * v.rn);
+
+    cout << "\n======= C2 TILING + REGISTER BLOCKING: "
+         << v.name << " =======\n";
+    cout << "Matrix size                 : " << N << " x " << N << '\n';
+    cout << "T4-selected base tile       : " << C2_TILE_SIZE
+         << " x " << C2_TILE_SIZE << '\n';
+    cout << "K tile depth (BK)           : " << C2_TILE_SIZE << '\n';
+    cout << "Register tile/thread       : " << v.rm << " x " << v.rn
+         << " = " << v.rm * v.rn << " outputs\n";
+    cout << "Output tile/block           : " << C2_TILE_SIZE * v.rm
+         << " x " << C2_TILE_SIZE * v.rn << '\n';
+    cout << "Threads per block           : " << v.block.x << " x "
+         << v.block.y << " = " << v.block.x * v.block.y << '\n';
+    cout << "Grid                        : " << v.grid.x << " x "
+         << v.grid.y << " = " << v.grid.x * v.grid.y << " blocks\n";
+    cout << "Shared-memory tile loads/FMA: " << globalLoadsPerFma
+         << " (theoretical global loads)\n";
+    cout << "Shared loads/FMA            : " << sharedLoadsPerFma
+         << " (theoretical shared loads)\n";
+
+    cout << "\n--- GPU Resource Usage ---\n";
+    cout << "Registers per thread        : " << r.registersPerThread << '\n';
+    cout << "Local memory per thread     : " << r.localBytesPerThread
+         << " bytes";
+    if (r.localBytesPerThread > 0) {
+        cout << " (inspect ptxas output for spills)";
+    }
+    cout << '\n';
+    cout << "Shared memory per block     : " << r.sharedBytes << " bytes\n";
+    cout << "Active blocks per SM        : " << r.activeBlocksPerSM << '\n';
+
+    cout << "\n--- Timing Results ---\n";
+    cout << "H2D transfer time           : " << h2dMs << " ms\n";
+    cout << "D2H transfer time           : " << r.d2hMs << " ms\n";
+    cout << "Kernel median time          : " << r.medianMs << " ms\n";
+    cout << "Kernel average time         : " << r.averageMs << " ms\n";
+
+    cout << "\n--- Performance ---\n";
+    cout << "GPU performance             : " << r.gflops << " GFLOP/s\n";
+
+    cout << "\n--- Correctness ---\n";
+    cout << "C[0]                        : " << r.c0 << '\n';
+    cout << "Maximum absolute error      : " << r.maxError << '\n';
+    cout << "Correctness                 : "
+         << (r.correct ? "PASSED" : "FAILED") << '\n';
+}
+
+int main(int argc, char *argv[])
+{
+    int N = 256;
+    if (argc > 1) {
+        N = atoi(argv[1]);
+    }
+    if (N <= 0) {
+        cerr << "Matrix size must be positive.\n";
+        return EXIT_FAILURE;
+    }
+
+    cudaDeviceProp prop;
+    CUDA_CHECK(cudaGetDeviceProperties(&prop, 0));
+
+    const size_t maxSharedPerBlock =
+        (prop.sharedMemPerBlockOptin > 0)
+            ? static_cast<size_t>(prop.sharedMemPerBlockOptin)
+            : static_cast<size_t>(prop.sharedMemPerBlock);
+    const size_t defaultSharedPerBlock =
+        static_cast<size_t>(prop.sharedMemPerBlock);
+
+    cout << fixed << setprecision(6);
+    cout << "GPU                         : " << prop.name << " ("
+         << prop.multiProcessorCount << " SMs, CC "
+         << prop.major << "." << prop.minor << ")\n";
+    cout << "Default shared memory/block: " << defaultSharedPerBlock
+         << " bytes\n";
+    cout << "Maximum shared memory/block: " << maxSharedPerBlock
+         << " bytes\n";
+    cout << "C2 selected T4 tile         : " << C2_TILE_SIZE
+         << " x " << C2_TILE_SIZE << "; BK=" << C2_TILE_SIZE << "\n";
+    cout << "Timed runs per variant      : " << TIMED_RUNS
+         << " (after one warm-up)\n";
+
+    const size_t elements = static_cast<size_t>(N) * static_cast<size_t>(N);
+    if (elements > numeric_limits<size_t>::max() / sizeof(double)) {
+        cerr << "Matrix allocation size overflows size_t.\n";
+        return EXIT_FAILURE;
+    }
+    const size_t bytes = elements * sizeof(double);
+
+    vector<double> h_A(elements);
+    vector<double> h_B(elements);
+    vector<double> h_C(elements);
+    vector<double> h_reference(elements);
+
+    // Deterministic input generation matching T3, T4, T5 and C1.
+    for (size_t i = 0; i < elements; ++i) {
+        h_A[i] =
+            (static_cast<int>((i * 17 + 3) % 101) - 50) / 100.0;
+        h_B[i] =
+            (static_cast<int>((i * 13 + 7) % 101) - 50) / 100.0;
+    }
+
+    cout << "\nComputing FP64 CPU reference...\n";
+    cpuMatrixMultiply(h_A, h_B, h_reference, N);
+
+    double *d_A = nullptr;
+    double *d_B = nullptr;
+    double *d_C = nullptr;
+    CUDA_CHECK(cudaMalloc(&d_A, bytes));
+    CUDA_CHECK(cudaMalloc(&d_B, bytes));
+    CUDA_CHECK(cudaMalloc(&d_C, bytes));
+
+    cudaEvent_t start, stop;
+    CUDA_CHECK(cudaEventCreate(&start));
+    CUDA_CHECK(cudaEventCreate(&stop));
+
+    // Measure input transfer once; all variants use the same device matrices.
+    CUDA_CHECK(cudaEventRecord(start));
+    CUDA_CHECK(cudaMemcpy(d_A, h_A.data(), bytes, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_B, h_B.data(), bytes, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaEventRecord(stop));
+    CUDA_CHECK(cudaEventSynchronize(stop));
+
+    float h2d = 0.0f;
+    CUDA_CHECK(cudaEventElapsedTime(&h2d, start, stop));
+    const double h2dMs = h2d;
+
+    const dim3 block(C2_TILE_SIZE, C2_TILE_SIZE);
+
+    char tags[4][64];
+    snprintf(tags[0], sizeof(tags[0]), "c2_s%d_rm1x1", C2_TILE_SIZE);
+    snprintf(tags[1], sizeof(tags[1]), "c2_s%d_rm2x2", C2_TILE_SIZE);
+    snprintf(tags[2], sizeof(tags[2]), "c2_s%d_rm4x4", C2_TILE_SIZE);
+    snprintf(tags[3], sizeof(tags[3]), "c2_s%d_rm8x8", C2_TILE_SIZE);
+
+    Variant variants[4] = {
+        { tags[0], "1x1 (tiled reference; no register blocking)",
+          1, 1, launchVariant<1,1>, getVariantAttributes<1,1>,
+          getVariantOccupancy<1,1>, setVariantDynamicSmem<1,1>,
+          block, gridFor(N,1,1), sharedBytesFor(1,1) },
+        { tags[1], "2x2 (4 outputs per thread)",
+          2, 2, launchVariant<2,2>, getVariantAttributes<2,2>,
+          getVariantOccupancy<2,2>, setVariantDynamicSmem<2,2>,
+          block, gridFor(N,2,2), sharedBytesFor(2,2) },
+        { tags[2], "4x4 (16 outputs per thread)",
+          4, 4, launchVariant<4,4>, getVariantAttributes<4,4>,
+          getVariantOccupancy<4,4>, setVariantDynamicSmem<4,4>,
+          block, gridFor(N,4,4), sharedBytesFor(4,4) },
+        { tags[3], "8x8 (64 outputs per thread; register-heavy)",
+          8, 8, launchVariant<8,8>, getVariantAttributes<8,8>,
+          getVariantOccupancy<8,8>, setVariantDynamicSmem<8,8>,
+          block, gridFor(N,8,8), sharedBytesFor(8,8) }
+    };
+
+    Result results[4] = {};
+    bool allCorrect = true;
+
+    for (int i = 0; i < 4; ++i) {
+        results[i] = runVariant(
+            variants[i], d_A, d_B, d_C, h_C, h_reference, N, bytes,
+            maxSharedPerBlock, defaultSharedPerBlock, start, stop);
+
+        if (!results[i].supported) {
+            continue;
+        }
+
+        printVariant(variants[i], N, h2dMs, results[i]);
+        if (!results[i].correct) {
+            allCorrect = false;
+        }
+    }
+
+    // Pick the fastest supported configuration that passed correctness.
+    int best = -1;
+    for (int i = 0; i < 4; ++i) {
+        if (!results[i].supported || !results[i].correct) {
+            continue;
+        }
+        if (best < 0 || results[i].medianMs < results[best].medianMs) {
+            best = i;
+        }
+    }
+
+    cout << "\n======= C2 TILING + REGISTER BLOCKING SUMMARY (N = "
+         << N << ", T4 tile = " << C2_TILE_SIZE << "x" << C2_TILE_SIZE
+         << ") =======\n";
+    printf("%-42s %12s %10s %9s %6s %8s %7s\n",
+           "Configuration", "Median (ms)", "GFLOP/s", "vs 1x1",
+           "Regs", "Smem B", "Blk/SM");
+
+    for (int i = 0; i < 4; ++i) {
+        if (!results[i].supported) {
+            printf("%-42s %12s\n", variants[i].name, "SKIPPED");
+            continue;
+        }
+
+        double speedup = 0.0;
+        if (results[0].supported && results[0].correct &&
+            results[i].medianMs > 0.0) {
+            speedup = results[0].medianMs / results[i].medianMs;
+        }
+
+        printf("%-42s %12.6f %10.3f %8.2fx %6d %8zu %7d%s\n",
+               variants[i].name,
+               results[i].medianMs,
+               results[i].gflops,
+               speedup,
+               results[i].registersPerThread,
+               results[i].sharedBytes,
+               results[i].activeBlocksPerSM,
+               i == best ? "  <== best" : "");
+    }
+
+    if (best >= 0) {
+        cout << "\nBest C2 configuration for N = " << N << ": "
+             << variants[best].name << '\n';
+        cout << "Median time                 : " << results[best].medianMs
+             << " ms\n";
+        cout << "Performance                 : " << results[best].gflops
+             << " GFLOP/s\n";
+        if (results[0].supported && results[0].correct) {
+            cout << "Speedup vs C2 tiled 1x1     : "
+                 << results[0].medianMs / results[best].medianMs << "x\n";
+        }
+    } else {
+        cerr << "No supported C2 configuration passed correctness.\n";
+        allCorrect = false;
+    }
+
+    // Same seven-column CSV format as T5:
+    // RESULT,variant,N,median_ms,average_ms,gflops,max_abs_error
+    cout << "\n";
+    for (int i = 0; i < 4; ++i) {
+        if (!results[i].supported) {
+            printf("SKIP,%s,%d,unsupported_configuration\n", tags[i], N);
+        } else {
+            printf("RESULT,%s,%d,%.6f,%.6f,%.3f,%.3e\n",
+                   tags[i], N,
+                   results[i].medianMs,
+                   results[i].averageMs,
+                   results[i].gflops,
+                   results[i].maxError);
+        }
+    }
+
+    CUDA_CHECK(cudaEventDestroy(start));
+    CUDA_CHECK(cudaEventDestroy(stop));
+    CUDA_CHECK(cudaFree(d_A));
+    CUDA_CHECK(cudaFree(d_B));
+    CUDA_CHECK(cudaFree(d_C));
+
+    return (allCorrect && best >= 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
