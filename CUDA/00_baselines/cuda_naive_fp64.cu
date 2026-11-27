@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -196,6 +197,7 @@ int main(int argc, char *argv[])
         if (error > 1e-9)
             correct = false;
     }
+
     // Performance calculation
     double operations = 2.0 * N * N * N;
 
