@@ -1,0 +1,3 @@
+bin/
+slurm_logs/
+*.sif
